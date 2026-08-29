@@ -1,0 +1,33 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EricksonLopez.Idempotency.AspNetCore.Tests</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.AspNetCore.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Abstractions\EricksonLopez.Idempotency.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency\EricksonLopez.Idempotency.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.AspNetCore\EricksonLopez.Idempotency.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Testing\EricksonLopez.Idempotency.Testing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+</Project>

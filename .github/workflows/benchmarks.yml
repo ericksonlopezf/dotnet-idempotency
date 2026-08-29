@@ -1,0 +1,99 @@
+# Copyright © Erickson Lopez. MIT License.
+name: Benchmarks
+
+on:
+  workflow_call:
+    inputs:
+      benchmark-filter:
+        description: "BenchmarkDotNet filter expression (e.g. '*')"
+        required: false
+        default: "*"
+        type: string
+  workflow_dispatch:
+    inputs:
+      benchmark-filter:
+        description: "BenchmarkDotNet filter expression (e.g. '*')"
+        required: false
+        default: "*"
+        type: string
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore Strong Name key
+        env:
+          SNK_KEY: ${{ secrets.SNK_KEY }}
+        run: |
+          if [ -n "$SNK_KEY" ]; then
+            echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
+          fi
+
+      - name: Restore dependencies
+        run: dotnet restore EricksonLopez.Idempotency.slnx
+
+      - name: Build (Release)
+        run: dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release
+
+      - name: Prepare benchmark directories
+        run: mkdir -p benchmarks/results
+
+      - name: Run benchmarks
+        run: >
+          dotnet run
+          --project benchmarks/EricksonLopez.Idempotency.Benchmarks/EricksonLopez.Idempotency.Benchmarks.csproj
+          --configuration Release
+          --framework net10.0
+          --
+          --filter "${{ inputs.benchmark-filter || '*' }}"
+          --job short
+          --exporters json markdown
+          --artifacts ./benchmarks/results
+
+      - name: Sync Benchmark Results
+        if: always()
+        run: |
+          mkdir -p benchmarks/results
+          if [ -d "BenchmarkDotNet.Artifacts/results" ]; then
+            cp -rf BenchmarkDotNet.Artifacts/results/* benchmarks/results/ 2>/dev/null || true
+          fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_id }}
+          path: benchmarks/results/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Post benchmark summary to Step Summary
+        if: always()
+        run: |
+          FOUND=0
+          for SUMMARY in $(find benchmarks/results -name "*.md" 2>/dev/null | sort); do
+            echo "## $(basename $SUMMARY)" >> "$GITHUB_STEP_SUMMARY"
+            cat "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            FOUND=1
+          done
+          if [ $FOUND -eq 0 ]; then
+            echo "### ⚠️ No benchmark markdown results found" >> "$GITHUB_STEP_SUMMARY"
+          fi

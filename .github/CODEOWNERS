@@ -1,0 +1,8 @@
+# Code Owners for EricksonLopez.Idempotency
+* @ericksonlopezf
+/.github/ @ericksonlopezf
+/src/ @ericksonlopezf
+/tests/ @ericksonlopezf
+/samples/ @ericksonlopezf
+/benchmarks/ @ericksonlopezf
+/docs/ @ericksonlopezf

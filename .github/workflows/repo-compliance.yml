@@ -1,0 +1,20 @@
+# Copyright © Erickson Lopez. MIT License.
+name: Repository Compliance
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  verify:
+    name: Verify Architectural Governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Compliance Auditor
+        shell: pwsh
+        run: pwsh -File scripts/verify-compliance.ps1

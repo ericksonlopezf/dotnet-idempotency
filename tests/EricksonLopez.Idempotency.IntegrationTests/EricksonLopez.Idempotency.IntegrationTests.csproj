@@ -1,0 +1,35 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EricksonLopez.Idempotency.IntegrationTests</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.IntegrationTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Abstractions\EricksonLopez.Idempotency.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency\EricksonLopez.Idempotency.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.PostgreSql\EricksonLopez.Idempotency.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.SqlServer\EricksonLopez.Idempotency.SqlServer.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.MySql\EricksonLopez.Idempotency.MySql.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.MariaDb\EricksonLopez.Idempotency.MariaDb.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Oracle\EricksonLopez.Idempotency.Oracle.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Sqlite\EricksonLopez.Idempotency.Sqlite.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Testing\EricksonLopez.Idempotency.Testing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+</Project>

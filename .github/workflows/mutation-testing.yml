@@ -1,0 +1,209 @@
+# Copyright © Erickson Lopez. MIT License.
+name: Mutation Testing
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  schedule:
+    - cron: '0 3 * * 0' # Weekly Sunday deep mutation test run
+  workflow_dispatch:
+    inputs:
+      level:
+        description: 'Mutation Testing Level'
+        required: true
+        default: 'Standard'
+        type: choice
+        options:
+          - Basic
+          - Standard
+          - Advanced
+      package:
+        description: 'Specific package (or all)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - core
+          - abstractions
+          - aspnetcore
+          - mariadb
+          - mediator
+          - mysql
+          - oracle
+          - postgresql
+          - redis
+          - result
+          - sqlite
+          - sqlserver
+          - testing
+
+concurrency:
+  group: mutation-testing-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  statuses: write
+  checks: write
+  actions: read
+
+jobs:
+  setup-matrix:
+    name: Setup Mutation Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.set-matrix.outputs.packages }}
+      level: ${{ steps.set-matrix.outputs.level }}
+    steps:
+      - name: Calculate Package Matrix
+        id: set-matrix
+        shell: pwsh
+        run: |
+          $level = "${{ github.event.inputs.level }}"
+          if ([string]::IsNullOrWhiteSpace($level)) { $level = "Standard" }
+          $pkg = "${{ github.event.inputs.package }}"
+          if ([string]::IsNullOrWhiteSpace($pkg)) { $pkg = "all" }
+
+          $allPackages = @('core', 'abstractions', 'aspnetcore', 'mariadb', 'mediator', 'mysql', 'oracle', 'postgresql', 'redis', 'result', 'sqlite', 'sqlserver', 'testing')
+          $basicPackages = @('core', 'abstractions', 'result', 'testing')
+
+          $selected = @()
+          if ($pkg -ne "all") {
+            $selected = @($pkg)
+          } elseif ($level -eq "Basic") {
+            $selected = $basicPackages
+          } else {
+            $selected = $allPackages
+          }
+
+          $json = $selected | ConvertTo-Json -Compress
+          if ($selected.Count -eq 1) {
+            $json = "[$json]"
+          }
+          Write-Host "Selected Matrix Packages: $json (Level: $level)"
+          echo "packages=$json" >> $env:GITHUB_OUTPUT
+          echo "level=$level" >> $env:GITHUB_OUTPUT
+
+  mutate:
+    name: Stryker (${{ matrix.package }})
+    needs: [ setup-matrix ]
+    runs-on: ubuntu-latest
+    # Timeout is configured to 180 minutes (3 hours) because comprehensive mutation analysis
+    # across deep source trees with Roslyn compilation can legitimately exceed 60 minutes in CI runners.
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.setup-matrix.outputs.packages) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Restore Strong Name key
+        env:
+          SNK_KEY: ${{ secrets.SNK_KEY }}
+        run: |
+          if [ -n "$SNK_KEY" ]; then
+            echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
+          fi
+
+      - name: Install Stryker.NET CLI
+        run: dotnet tool install -g dotnet-stryker
+
+      - name: Restore dependencies
+        run: dotnet restore EricksonLopez.Idempotency.slnx
+
+      - name: Run Stryker Mutation Testing
+        run: |
+          CONFIG_FILE="stryker-${{ matrix.package }}-config.json"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            CONFIG_FILE="stryker-config.json"
+          fi
+          dotnet-stryker --config-file "$CONFIG_FILE" --output "StrykerOutput/ci-${{ matrix.package }}"
+
+      - name: Record & Enforce Mutation Score
+        if: always()
+        run: |
+          CONFIG_FILE="stryker-${{ matrix.package }}-config.json"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            CONFIG_FILE="stryker-config.json"
+          fi
+          python3 scripts/extract-mutation-score.py "StrykerOutput/ci-${{ matrix.package }}" "${{ matrix.package }}" "$CONFIG_FILE"
+
+      - name: Upload Stryker Report Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stryker-report-${{ matrix.package }}-${{ github.run_id }}
+          path: StrykerOutput/
+          retention-days: 14
+
+      - name: Upload Package Summary JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stryker-summary-${{ matrix.package }}-${{ github.run_id }}
+          path: StrykerOutput/summary-${{ matrix.package }}.json
+          retention-days: 14
+
+  aggregate-and-gate:
+    name: Aggregate & Mutation Quality Gate
+    needs: [ setup-matrix, mutate ]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download all package summaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: stryker-summary-*-${{ github.run_id }}
+          path: StrykerOutput/downloaded/
+          merge-multiple: true
+
+      - name: Move downloaded summaries
+        shell: pwsh
+        run: |
+          if (Test-Path "StrykerOutput/downloaded") {
+            Get-ChildItem -Path "StrykerOutput/downloaded" -Filter "*.json" | ForEach-Object {
+              Copy-Item $_.FullName -Destination "StrykerOutput/$($_.Name)" -Force
+            }
+          }
+
+      - name: Evaluate Aggregate Quality Gate & Post Status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/aggregate-stryker-manifest.py "StrykerOutput" "stryker-config.json"
+
+      - name: Upload Release Manifest Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stryker-quality-manifest-${{ github.run_id }}
+          path: StrykerOutput/stryker-release-manifest.json
+          retention-days: 30

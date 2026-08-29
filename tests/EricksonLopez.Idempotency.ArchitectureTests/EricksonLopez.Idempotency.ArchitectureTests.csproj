@@ -1,0 +1,39 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EricksonLopez.Idempotency.ArchitectureTests</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.ArchitectureTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Abstractions\EricksonLopez.Idempotency.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency\EricksonLopez.Idempotency.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.PostgreSql\EricksonLopez.Idempotency.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.AspNetCore\EricksonLopez.Idempotency.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Mediator\EricksonLopez.Idempotency.Mediator.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Result\EricksonLopez.Idempotency.Result.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Testing\EricksonLopez.Idempotency.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

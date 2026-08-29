@@ -1,0 +1,92 @@
+# Copyright © Erickson Lopez. MIT License.
+name: Weekly Benchmarks (Deep Review)
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      benchmark-filter:
+        description: "BenchmarkDotNet filter glob (e.g. '*')"
+        required: false
+        default: "*"
+        type: string
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  weekly-benchmarks:
+    name: Run Weekly Benchmarks (Full Review)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup .NET (multi-version for cross-TFM benchmarks)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore Strong Name key
+        env:
+          SNK_KEY: ${{ secrets.SNK_KEY }}
+        run: |
+          if [ -n "$SNK_KEY" ]; then
+            echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
+          fi
+
+      - name: Restore dependencies
+        run: dotnet restore EricksonLopez.Idempotency.slnx
+
+      - name: Build (Release)
+        run: dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release
+
+      - name: Run benchmarks
+        run: |
+          mkdir -p benchmarks/results
+          dotnet run \
+            --project benchmarks/EricksonLopez.Idempotency.Benchmarks/EricksonLopez.Idempotency.Benchmarks.csproj \
+            --configuration Release \
+            --framework net10.0 \
+            -- \
+            --filter "${{ inputs.benchmark-filter || '*' }}" \
+            --runtimes net8.0 net9.0 net10.0 \
+            --exporters json markdown \
+            --artifacts ./benchmarks/results
+
+      - name: Upload benchmark results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-benchmark-results-${{ github.run_id }}
+          path: benchmarks/results/
+          retention-days: 90
+
+      - name: Commit benchmark results
+        if: success()
+        run: |
+          mkdir -p benchmarks/results
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f benchmarks/results/
+          if git diff --staged --quiet; then
+            echo "No benchmark result changes to commit."
+          else
+            git commit -m "chore(benchmarks): update weekly performance baseline [skip ci]
+
+          Run: ${{ github.run_id }}
+          Trigger: Weekly Schedule
+          Filter: ${{ inputs.benchmark-filter || '*' }}"
+            git push origin main
+          fi

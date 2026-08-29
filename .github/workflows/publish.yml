@@ -64,7 +64,7 @@ jobs:
     needs: mutation-gate-check
     if: needs.mutation-gate-check.outputs.needs_stryker == 'true'
     permissions:
-      contents: read
+      contents: write
       statuses: write
       actions: read
     uses: ./.github/workflows/mutation-testing.yml

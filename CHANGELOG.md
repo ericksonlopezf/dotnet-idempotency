@@ -5,6 +5,25 @@ All notable changes to `EricksonLopez.Idempotency` will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/ericksonlopezf/dotnet-idempotency/compare/v1.0.0...v1.0.1) (2026-08-29)
+
+
+### 🐛 Bug Fixes
+
+* **aot:** set explicit single-target framework in AOT smoke test and sample executables ([c5a1bc8](https://github.com/ericksonlopezf/dotnet-idempotency/commit/c5a1bc81aabba5ac75b32bcdfd833098d0117bc1))
+* **ci:** fix Stryker config file path resolution in mutation testing workflow ([020b70a](https://github.com/ericksonlopezf/dotnet-idempotency/commit/020b70ac1737d264385d3fa0a30786cde70864da))
+* **tests:** resolve cleanup service test timing and avoid trx collision ([50be81d](https://github.com/ericksonlopezf/dotnet-idempotency/commit/50be81dbe06ab6f18fdd57b9d542adc0804aa519))
+
+
+### 📖 Documentation
+
+* update mutation score badge to 99% [skip ci] ([143217f](https://github.com/ericksonlopezf/dotnet-idempotency/commit/143217fc009476b35fef285acc236350856fa1b7))
+
+
+### ✅ Tests
+
+* **abstractions:** add exhaustive unit tests to achieve 100% mutation score on Abstractions ([2c9710e](https://github.com/ericksonlopezf/dotnet-idempotency/commit/2c9710e34733742c1ed643f7442ae693e3786076))
+
 ## [Unreleased]
 
 No unreleased changes at this time.

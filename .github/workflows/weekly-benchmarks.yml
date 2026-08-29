@@ -31,7 +31,7 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup .NET (multi-version for cross-TFM benchmarks)
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
             8.0.x

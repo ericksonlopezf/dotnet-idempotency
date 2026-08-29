@@ -1,0 +1,25 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>EricksonLopez.Idempotency.Mediator</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.Mediator</AssemblyName>
+    <Description>Mediator pipeline behavior integration for EricksonLopez.Idempotency.</Description>
+    <PackageTags>$(CommonPackageTags);mediator;cqrs;pipeline-behavior;clean-architecture;command-handler;deduplication</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EricksonLopez.Idempotency.Abstractions\EricksonLopez.Idempotency.Abstractions.csproj" />
+    <ProjectReference Include="..\EricksonLopez.Idempotency\EricksonLopez.Idempotency.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EricksonLopez.Mediator" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EricksonLopez.Idempotency.Mediator.Tests" />
+  </ItemGroup>
+
+</Project>

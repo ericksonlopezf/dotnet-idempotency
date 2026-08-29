@@ -1,0 +1,31 @@
+{
+  "stryker-config": {
+    "ignore-methods": [
+      "ConfigureAwait",
+      "Dispose"
+    ],
+    "test-projects": [
+      "EricksonLopez.Idempotency.Tests.csproj"
+    ],
+    "project": "EricksonLopez.Idempotency.csproj",
+    "reporters": [
+      "html",
+      "json",
+      "cleartext",
+      "progress"
+    ],
+    "mutate": [
+      "**/*.cs",
+      "!bin/**",
+      "!obj/**",
+      "!**/*.g.cs",
+      "!**/*.AssemblyInfo.cs"
+    ],
+    "thresholds": {
+      "break": 95,
+      "high": 100,
+      "low": 98
+    },
+    "coverage-analysis": "all"
+  }
+}

@@ -1,0 +1,135 @@
+# Copyright © Erickson Lopez. MIT License.
+name: Weekly Benchmarks (Deep Review)
+
+# ─── Purpose ─────────────────────────────────────────────────────────────────
+# Runs a deep BenchmarkDotNet review across multiple frameworks (.NET 8, 9, and 10)
+# every week. This runs the Default Job configuration (not 'short') to get 
+# statistically rigorous results without blocking the developer's day-to-day PRs.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # Runs every Sunday at 2:00 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      benchmark-filter:
+        description: "BenchmarkDotNet filter glob (e.g. '*Crud*', '*' for all)"
+        required: false
+        default: "*"
+        type: string
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  benchmark:
+    name: Weekly Performance Benchmarks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup .NET (multi-version for cross-TFM benchmarks)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore Strong Name key
+        env:
+          SNK_KEY: ${{ secrets.SNK_KEY }}
+        run: |
+          if [ -n "$SNK_KEY" ]; then
+            echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
+          fi
+
+      - name: Restore dependencies
+        run: dotnet restore EricksonLopez.Idempotency.slnx
+
+      - name: Build (Release)
+        run: dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release
+
+      - name: Prepare benchmark directories
+        run: mkdir -p benchmarks/results
+
+      - name: Run benchmarks
+        run: >
+          dotnet run
+          --project benchmarks/EricksonLopez.Idempotency.Benchmarks/EricksonLopez.Idempotency.Benchmarks.csproj
+          --configuration Release
+          --framework net10.0
+          --
+          --filter "${{ inputs.benchmark-filter || '*' }}"
+          --runtimes net8.0 net9.0 net10.0
+          --exporters json markdown
+          --artifacts ./benchmarks/results
+
+      - name: Sync Benchmark Results
+        if: always()
+        run: |
+          mkdir -p benchmarks/results
+          if [ -d "BenchmarkDotNet.Artifacts/results" ]; then
+            cp -rf BenchmarkDotNet.Artifacts/results/* benchmarks/results/ 2>/dev/null || true
+          fi
+
+      - name: Upload benchmark results as artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: weekly-benchmark-results-${{ github.run_id }}
+          path: benchmarks/results/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Commit benchmark results
+        if: success()
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "Skipping benchmark baseline commit: running on a tag (${{ github.ref_name }})."
+            exit 0
+          fi
+
+          TARGET_BRANCH="${{ github.head_ref || github.ref_name }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -d "benchmarks/results" ] && [ -n "$(ls -A benchmarks/results 2>/dev/null)" ]; then
+            git add -f benchmarks/results/
+          fi
+          if git diff --staged --quiet; then
+            echo "No benchmark result changes to commit."
+          else
+            git commit -m "chore(benchmarks): update weekly performance baseline [skip ci]
+
+          Run: ${{ github.run_id }}
+          Trigger: Weekly Schedule
+          Runtime: .NET 8.0 + .NET 9.0 + .NET 10.0 (Deep Review)
+          "
+            git fetch origin "$TARGET_BRANCH"
+            git rebase origin/"$TARGET_BRANCH" || true
+            git push origin HEAD:"$TARGET_BRANCH"
+          fi
+
+      - name: Post benchmark summary to Step Summary
+        if: always()
+        run: |
+          FOUND=0
+          for SUMMARY in $(find benchmarks/results -name "*.md" 2>/dev/null | sort); do
+            echo "## $(basename $SUMMARY)" >> "$GITHUB_STEP_SUMMARY"
+            cat "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            FOUND=1
+          done
+          if [ $FOUND -eq 0 ]; then
+            echo "### ⚠️ No benchmark markdown results found" >> "$GITHUB_STEP_SUMMARY"
+          fi

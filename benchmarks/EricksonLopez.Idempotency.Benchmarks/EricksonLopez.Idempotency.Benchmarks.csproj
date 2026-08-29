@@ -1,0 +1,27 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EricksonLopez.Idempotency.Benchmarks</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.Benchmarks</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Abstractions\EricksonLopez.Idempotency.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency\EricksonLopez.Idempotency.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.Idempotency.Testing\EricksonLopez.Idempotency.Testing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+</Project>

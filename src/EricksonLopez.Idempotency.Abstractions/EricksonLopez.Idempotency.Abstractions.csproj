@@ -1,0 +1,12 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>EricksonLopez.Idempotency</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.Abstractions</AssemblyName>
+    <Description>Core abstractions, contracts, and domain primitives for the EricksonLopez.Idempotency library.</Description>
+    <PackageTags>$(CommonPackageTags);abstractions;contracts;domain-primitives;value-objects;spi;interfaces</PackageTags>
+  </PropertyGroup>
+
+</Project>

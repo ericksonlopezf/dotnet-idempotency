@@ -1,0 +1,41 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EricksonLopez.Idempotency/EricksonLopez.Idempotency.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.Abstractions/EricksonLopez.Idempotency.Abstractions.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.AspNetCore/EricksonLopez.Idempotency.AspNetCore.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.Mediator/EricksonLopez.Idempotency.Mediator.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.Redis/EricksonLopez.Idempotency.Redis.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.Result/EricksonLopez.Idempotency.Result.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.Testing/EricksonLopez.Idempotency.Testing.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.PostgreSql/EricksonLopez.Idempotency.PostgreSql.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.SqlServer/EricksonLopez.Idempotency.SqlServer.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.MySql/EricksonLopez.Idempotency.MySql.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.MariaDb/EricksonLopez.Idempotency.MariaDb.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.Oracle/EricksonLopez.Idempotency.Oracle.csproj" />
+    <Project Path="src/EricksonLopez.Idempotency.Sqlite/EricksonLopez.Idempotency.Sqlite.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EricksonLopez.Idempotency.Tests/EricksonLopez.Idempotency.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.Abstractions.Tests/EricksonLopez.Idempotency.Abstractions.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.AspNetCore.Tests/EricksonLopez.Idempotency.AspNetCore.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.Mediator.Tests/EricksonLopez.Idempotency.Mediator.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.Result.Tests/EricksonLopez.Idempotency.Result.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.Testing.Tests/EricksonLopez.Idempotency.Testing.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.Redis.Tests/EricksonLopez.Idempotency.Redis.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.PostgreSql.Tests/EricksonLopez.Idempotency.PostgreSql.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.SqlServer.Tests/EricksonLopez.Idempotency.SqlServer.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.MySql.Tests/EricksonLopez.Idempotency.MySql.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.MariaDb.Tests/EricksonLopez.Idempotency.MariaDb.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.Oracle.Tests/EricksonLopez.Idempotency.Oracle.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.Sqlite.Tests/EricksonLopez.Idempotency.Sqlite.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.IntegrationTests/EricksonLopez.Idempotency.IntegrationTests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.ArchitectureTests/EricksonLopez.Idempotency.ArchitectureTests.csproj" />
+    <Project Path="tests/EricksonLopez.Idempotency.AotSmokeTest/EricksonLopez.Idempotency.AotSmokeTest.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Showcase/EricksonLopez.Idempotency.Showcase.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/EricksonLopez.Idempotency.Benchmarks/EricksonLopez.Idempotency.Benchmarks.csproj" />
+  </Folder>
+</Solution>

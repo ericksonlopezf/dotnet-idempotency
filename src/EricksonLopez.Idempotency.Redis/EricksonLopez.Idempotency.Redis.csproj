@@ -1,0 +1,26 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>EricksonLopez.Idempotency.Redis</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.Redis</AssemblyName>
+    <Description>Redis storage provider for EricksonLopez.Idempotency using StackExchange.Redis with Lua scripts for atomic operations. Note: Redis guarantees are slightly weaker than SQL providers (no fencing tokens); see docs/adr/adr-013-no-idistributedcache-abstraction.md for details.</Description>
+    <PackageTags>$(CommonPackageTags);redis;stackexchange-redis;distributed-cache;lua-scripting;nosql;cache</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EricksonLopez.Idempotency.Abstractions\EricksonLopez.Idempotency.Abstractions.csproj" />
+    <ProjectReference Include="..\EricksonLopez.Idempotency\EricksonLopez.Idempotency.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EricksonLopez.Idempotency.Redis.Tests" />
+  </ItemGroup>
+
+</Project>

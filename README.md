@@ -5,7 +5,7 @@ High-performance, Native AOT-first architectural idempotency engine, lease fenci
 [![CI](https://img.shields.io/github/actions/workflow/status/ericksonlopezf/dotnet-idempotency/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/ericksonlopezf/dotnet-idempotency/actions)
 [![Coverage](https://img.shields.io/codecov/c/github/ericksonlopezf/dotnet-idempotency?style=for-the-badge&logo=codecov&logoColor=white)](https://codecov.io/gh/ericksonlopezf/dotnet-idempotency)
 [![Quality Gate](https://img.shields.io/sonar/quality_gate/ericksonlopezf_dotnet-idempotency?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarcloud&logoColor=white)](https://sonarcloud.io/summary/new_code?id=ericksonlopezf_dotnet-idempotency)
-[![Mutation Score](https://img.shields.io/badge/Mutation_Score-%E2%89%A595%25-brightgreen?style=for-the-badge&logo=stryker&logoColor=white)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/build-ci-cd.md)
+[![Mutation Score](https://img.shields.io/badge/Mutation_Score-99%25-brightgreen?style=for-the-badge&logo=stryker&logoColor=white)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/build-ci-cd.md)
 [![NuGet](https://img.shields.io/nuget/v/EricksonLopez.Idempotency?style=for-the-badge&logo=nuget&logoColor=white&color=512BD4)](https://www.nuget.org/packages/EricksonLopez.Idempotency)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/EricksonLopez.Idempotency?style=for-the-badge&logo=nuget&logoColor=white&color=004880)](https://www.nuget.org/packages/EricksonLopez.Idempotency)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/LICENSE)

@@ -1,33 +1,21 @@
-# Dependabot configuration for EricksonLopez.Idempotency
 version: 2
 updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
     groups:
-      microsoft-extensions:
+      microsoft:
         patterns:
-          - "Microsoft.Extensions.*"
-      database-drivers:
-        patterns:
-          - "Npgsql"
-          - "Microsoft.Data.SqlClient"
-          - "MySqlConnector"
-          - "Oracle.ManagedDataAccess.Core"
-          - "Microsoft.Data.Sqlite"
-          - "Dapper"
-      test-framework:
+          - "Microsoft.*"
+          - "System.*"
+      testing:
         patterns:
           - "xunit*"
-          - "AwesomeAssertions"
-          - "NSubstitute"
+          - "Testcontainers*"
           - "coverlet.*"
-          - "NetArchTest.Rules"
-
+          - "*Assertions*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5

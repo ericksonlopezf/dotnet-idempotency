@@ -101,7 +101,13 @@ public sealed class IdempotencyCleanupServiceTests
         await service.StartAsync(CancellationToken.None);
 
         // Wait for multiple cycles (one with purged > 0, then one with purged == 0)
-        await Task.Delay(100);
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (DateTime.UtcNow < deadline &&
+               (!logger.LoggedEntries.Exists(e => e.Message.Contains("purged 1 expired record(s)")) ||
+                !logger.LoggedEntries.Exists(e => e.Message.Contains("no expired records found"))))
+        {
+            await Task.Delay(20);
+        }
 
         await service.StopAsync(CancellationToken.None);
 
@@ -129,7 +135,12 @@ public sealed class IdempotencyCleanupServiceTests
 
         await service.StartAsync(CancellationToken.None);
 
-        await Task.Delay(70);
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (DateTime.UtcNow < deadline &&
+               !logger.LoggedEntries.Exists(e => e.LogLevel == LogLevel.Error && e.Message.Contains("Idempotency cleanup cycle failed unexpectedly")))
+        {
+            await Task.Delay(20);
+        }
 
         await service.StopAsync(CancellationToken.None);
 

@@ -103,7 +103,7 @@ jobs:
           --configuration Release
           ${{ inputs.test-filter != '' && format('--filter "{0}"', inputs.test-filter) || '' }}
           --settings .runsettings
-          --logger "trx;LogFileName=test-results.trx"
+          --logger "trx"
           --results-directory ./test-results
           --collect:"XPlat Code Coverage"
           --

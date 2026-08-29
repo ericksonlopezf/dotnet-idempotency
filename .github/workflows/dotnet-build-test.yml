@@ -1,45 +1,63 @@
 # Copyright © Erickson Lopez. MIT License.
-name: Build and Test
+name: Reusable — .NET Build & Test
 
 on:
   workflow_call:
+    inputs:
+      dotnet-version:
+        description: ".NET SDK version to use"
+        required: false
+        type: string
+        default: "10.0.x"
+      test-filter:
+        description: "Test filter expression (e.g., Category!=Integration)"
+        required: false
+        type: string
+        default: ""
+      test-project:
+        description: "Specific test project path (leave empty to run all)"
+        required: false
+        type: string
+        default: ""
+      upload-coverage:
+        description: "Whether to upload code coverage artifacts"
+        required: false
+        type: boolean
+        default: true
+      artifact-name:
+        description: "Name for the test results artifact"
+        required: false
+        type: string
+        default: "test-results"
     secrets:
       SNK_KEY:
+        description: "Base64-encoded Strong Name key (.snk) for assembly signing"
         required: false
       CODECOV_TOKEN:
+        description: "Codecov upload token for coverage reporting"
         required: false
       SONAR_TOKEN:
+        description: "SonarCloud token for analysis"
         required: false
-  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
   build-and-test:
-    name: Build, Test & Coverage
+    name: Build & Test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Java (for SonarCloud)
-        if: env.SONAR_TOKEN != ''
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup .NET SDKs
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
-            10.0.x
+          dotnet-version: ${{ inputs.dotnet-version }}
 
       - name: Restore Strong Name key
         env:
@@ -49,58 +67,68 @@ jobs:
             echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
           fi
 
-      - name: Install SonarScanner tool
-        if: env.SONAR_TOKEN != ''
+      - name: Setup Java (for SonarScanner)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install SonarScanner
         run: dotnet tool install --global dotnet-sonarscanner
-
-      - name: Restore dependencies
-        run: dotnet restore EricksonLopez.Idempotency.slnx
-
-      - name: SonarCloud Begin
-        if: env.SONAR_TOKEN != ''
+     
+      - name: Begin Sonar Analysis
         env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: >
-          dotnet-sonarscanner begin
-          /k:"ericksonlopezf_dotnet-idempotency"
-          /o:"ericksonlopezf"
-          /d:sonar.token="$SONAR_TOKEN"
-          /d:sonar.host.url="https://sonarcloud.io"
-          /d:sonar.cs.vstest.reportsPaths="**/TestResults/*.trx"
-          /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"
-          /d:sonar.coverage.exclusions="benchmarks/**,samples/**,tests/**"
+        if: env.SONAR_TOKEN != ''
+        run: |
+          dotnet sonarscanner begin /k:"ericksonlopezf_${{ github.event.repository.name || 'dotnet-idempotency' }}" \
+            /o:"ericksonlopezf" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml,test-results/**/coverage.opencover.xml" \
+            /d:sonar.exclusions="docs/**,samples/**,benchmarks/**,scripts/**,**/bin/**,**/obj/**,**/*.js,**/.github/**" \
+            /d:sonar.coverage.exclusions="tests/**,samples/**,benchmarks/**,docs/**,**/*Tests.cs,**/*Test*.cs,**/tests/**,**/benchmarks/**,**/samples/**,**/bin/**,**/obj/**,**/*Generator*.cs,**/*Analyzer*.cs,**/EquatableArray.cs,**/GeneratorHelpers.cs,**/Shared/**,**/*.g.cs,**/Generated/**" \
+            /d:sonar.cpd.exclusions="tests/**,**/tests/**,**/*Tests.cs,**/*Test*.cs,**/samples/**,**/benchmarks/**,**/bin/**,**/obj/**,**/*Generator*.cs,**/*Analyzer*.cs,**/EquatableArray.cs,**/GeneratorHelpers.cs,**/Shared/**,**/Models/**,**/SourceBuilder.cs,**/DiagnosticDescriptors.cs,**/*Template*.cs,**/*Converter*.cs,**/*Handler*.cs,**/*Provider*.cs,**/*.g.cs,**/Generated/**"
 
-      - name: Build Solution (Release)
-        run: dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release
+      - name: Build (Release)
+        run: dotnet build EricksonLopez.Idempotency.slnx --configuration Release
 
-      - name: Run Tests with Coverage
+      - name: Run tests
         run: >
-          dotnet test EricksonLopez.Idempotency.slnx
+          dotnet test
+          EricksonLopez.Idempotency.slnx
+          ${{ inputs.test-project }}
           --no-build
           --configuration Release
+          ${{ inputs.test-filter != '' && format('--filter "{0}"', inputs.test-filter) || '' }}
+          --settings .runsettings
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./test-results
           --collect:"XPlat Code Coverage"
-          --results-directory ./TestResults
-          --logger "trx;LogFileName=test_results.trx"
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover,cobertura
+          --
+          DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover,cobertura
 
-      - name: SonarCloud End
-        if: env.SONAR_TOKEN != ''
+      - name: End Sonar Analysis
         env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+        if: always() && env.SONAR_TOKEN != ''
+        run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
-      - name: Upload Test Results
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ github.run_id }}
-          path: ./TestResults
-          if-no-files-found: warn
+          name: ${{ inputs.artifact-name }}
+          path: ./test-results/
 
-      - name: Upload coverage reports to Codecov
-        if: always()
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage to Codecov
+        if: always() && inputs.upload-coverage
+        uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5.3.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./TestResults
+          files: "./test-results/**/coverage.cobertura.xml"
           fail_ci_if_error: false
+          flags: unittests
+          name: codecov-${{ inputs.artifact-name }}

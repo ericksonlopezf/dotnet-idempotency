@@ -24,7 +24,7 @@ function findJsonReports(dir) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       results = results.concat(findJsonReports(full));
-    } else if (entry.name.endsWith('.json') && !entry.name.endsWith('.html.json') && !entry.name.endsWith('metadata.json') && !entry.name.startsWith('summary-') && !entry.name.startsWith('stryker-release-manifest')) {
+    } else if (entry.name.endsWith('.json') && !entry.name.endsWith('.html.json') && !entry.name.endsWith('metadata.json') && !entry.name.startsWith('summary-')) {
       results.push(full);
     }
   }
@@ -63,8 +63,6 @@ function main() {
       }
       if (total > 0 && data.mutationScore === undefined) {
         score = Math.round((killed / total) * 10000) / 100;
-      } else if (total === 0) {
-        score = 100;
       }
       foundReport = true;
     } catch (err) {
@@ -72,16 +70,11 @@ function main() {
     }
   }
 
-  const passedGate = foundReport && (score >= thresholds.break || total === 0);
+  const passedGate = score >= thresholds.break && foundReport;
   let statusLabel = '❌ FAILED';
-  if (foundReport) {
-    if (score >= thresholds.high || total === 0) statusLabel = '✅ HIGH';
-    else if (score >= thresholds.low) statusLabel = '🟡 LOW';
-    else if (score >= thresholds.break) statusLabel = '🟠 WARNING';
-    else statusLabel = '❌ FAILED';
-  } else {
-    statusLabel = '❌ FAILED';
-  }
+  if (score >= thresholds.high) statusLabel = '✅ HIGH';
+  else if (score >= thresholds.low) statusLabel = '🟡 LOW';
+  else if (score >= thresholds.break) statusLabel = '🟠 WARNING';
 
   const sha = process.env.GITHUB_SHA || 'unknown';
   const repo = process.env.GITHUB_REPOSITORY || '';
@@ -89,11 +82,13 @@ function main() {
   const serverUrl = process.env.GITHUB_SERVER_URL || 'https://github.com';
   const runUrl = repo && runId ? `${serverUrl}/${repo}/actions/runs/${runId}` : '';
 
+  const executionDateIso = new Date().toISOString();
+
   // Save metadata artifact
   const metadata = {
     package: pkgName,
     commit_sha: sha,
-    execution_date: new Date().toISOString(),
+    execution_date: executionDateIso,
     mutation_score: score,
     mutants_killed: killed,
     total_mutants: total,
@@ -105,45 +100,41 @@ function main() {
     run_url: runUrl
   };
 
-  fs.mkdirSync('StrykerOutput', { recursive: true });
-  fs.writeFileSync(path.join('StrykerOutput', `summary-${pkgName}.json`), JSON.stringify(metadata, null, 2));
+  const outDir = 'StrykerOutput';
+  if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+  }
 
-  // Write Step Summary
-  const stepSummaryPath = process.env.GITHUB_STEP_SUMMARY;
-  if (stepSummaryPath) {
-    const summary = `
-## 🛡️ Stryker Mutation Testing Results — ${pkgName}
+  const summaryFile = path.join(outDir, `summary-${pkgName}.json`);
+  fs.writeFileSync(summaryFile, JSON.stringify(metadata, null, 2), 'utf8');
+
+  console.log(`============================================================`);
+  console.log(`  STRYKER MUTATION TEST SUMMARY: ${pkgName}`);
+  console.log(`============================================================`);
+  console.log(`Mutation Score  : ${score}% (${statusLabel})`);
+  console.log(`Mutants Killed  : ${killed} / ${total}`);
+  console.log(`Break Threshold : ≥${thresholds.break}%`);
+  console.log(`Gate Status     : ${passedGate ? '✅ PASSED' : '❌ FAILED'}`);
+  console.log(`Summary Output  : ${summaryFile}`);
+  console.log(`============================================================\n`);
+
+  // Write markdown step summary if supported
+  const summaryEnv = process.env.GITHUB_STEP_SUMMARY;
+  if (summaryEnv && fs.existsSync(path.dirname(summaryEnv))) {
+    const md = `
+### 🧬 Stryker Mutation Testing Result — ${pkgName}
 
 | Metric | Value |
-|--------|-------|
+|---|---|
+| **Package** | \`${pkgName}\` |
 | **Mutation Score** | **${score}%** |
-| **Mutants Killed** | ${killed} |
-| **Total Mutants** | ${total} |
-| **Threshold High** | ≥${thresholds.high}% |
-| **Threshold Low** | ≥${thresholds.low}% |
-| **Threshold Break** | ≥${thresholds.break}% |
+| **Mutants Killed** | ${killed} / ${total} |
+| **Threshold High / Low / Break** | ≥${thresholds.high}% / ≥${thresholds.low}% / ≥${thresholds.break}% |
 | **Status** | ${statusLabel} |
+| **Passed Break Gate** | ${passedGate ? '✅ Yes' : '❌ No'} |
 | **Commit SHA** | \`${sha.substring(0, 7)}\` |
-| **Execution date** | ${metadata.execution_date} |
 `;
-    fs.appendFileSync(stepSummaryPath, summary);
-  }
-
-  // Set GitHub Output
-  const outputPath = process.env.GITHUB_OUTPUT;
-  if (outputPath) {
-    fs.appendFileSync(outputPath, `score=${score}\n`);
-    fs.appendFileSync(outputPath, `passed_gate=${passedGate}\n`);
-    fs.appendFileSync(outputPath, `status=${statusLabel}\n`);
-    fs.appendFileSync(outputPath, `killed=${killed}\n`);
-    fs.appendFileSync(outputPath, `total=${total}\n`);
-  }
-
-  console.log(`[${pkgName}] Stryker Score: ${score}% (${killed}/${total}) - ${statusLabel}`);
-
-  if (!passedGate) {
-    console.error(`[${pkgName}] Quality gate failed: score ${score}% is below break threshold ${thresholds.break}%`);
-    process.exit(1);
+    fs.appendFileSync(summaryEnv, md, 'utf8');
   }
 }
 

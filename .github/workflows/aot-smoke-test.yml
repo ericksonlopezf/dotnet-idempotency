@@ -1,27 +1,55 @@
 # Copyright © Erickson Lopez. MIT License.
-name: Native AOT Smoke Test
+name: NativeAOT Smoke Test
+
+# ─── Purpose ────────────────────────────────────────────────────────────────
+# This workflow validates that EricksonLopez.Idempotency packages are genuinely
+# NativeAOT-compatible, not just declared as such via IsAotCompatible=true.
+#
+# The smoke test:
+#   1. Restores and builds the solution in Release mode.
+#   2. Publishes the AotSmokeTest console app with PublishAot=true. If any
+#      referenced API uses reflection without proper trimming annotations,
+#      ILC will emit IL2026 / IL3050 warnings — which we treat as errors.
+#   3. Runs the published native binary and asserts a zero exit code.
+#
+# Triggered on:
+#   • Every push / PR to main and develop (blocking gate)
+#   • Manual dispatch for debugging
+# ────────────────────────────────────────────────────────────────────────────
 
 on:
   workflow_call:
     secrets:
       SNK_KEY:
+        description: "Base64-encoded Strong Name key (.snk) for assembly signing"
         required: false
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
   workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
   aot-smoke-test:
-    name: Native AOT Compilation & Execution
+    name: NativeAOT Smoke Test
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 10
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
 
       - name: Restore Strong Name key
         env:
@@ -31,22 +59,43 @@ jobs:
             echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
           fi
 
-      - name: Publish Native AOT Smoke Test
-        run: >
-          dotnet publish tests/EricksonLopez.Idempotency.AotSmokeTest/EricksonLopez.Idempotency.AotSmokeTest.csproj
-          -c Release
-          -r linux-x64
-          --self-contained
-          -o ./aot-output
-
-      - name: List Output Files
-        run: ls -la ./aot-output
-
-      - name: Run Native AOT Binary
+      - name: Install NativeAOT prerequisites (clang, lld, zlib)
         run: |
-          if [ -f "./aot-output/EricksonLopez.Idempotency.AotSmokeTest" ]; then
-            chmod +x ./aot-output/EricksonLopez.Idempotency.AotSmokeTest
-            ./aot-output/EricksonLopez.Idempotency.AotSmokeTest
-          else
-            dotnet ./aot-output/EricksonLopez.Idempotency.AotSmokeTest.dll
-          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang lld zlib1g-dev
+
+      - name: Restore dependencies
+        run: dotnet restore EricksonLopez.Idempotency.slnx
+
+      - name: Build (Release)
+        run: dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release
+
+      # ─── Publish with AOT ────────────────────────────────────────────────
+      - name: Publish AotSmokeTest (NativeAOT)
+        run: >
+          dotnet publish
+          tests/EricksonLopez.Idempotency.AotSmokeTest/EricksonLopez.Idempotency.AotSmokeTest.csproj
+          --configuration Release
+          --runtime linux-x64
+          --self-contained
+          -p:TreatWarningsAsErrors=true
+          -p:WarningLevel=5
+          --output ./aot-output
+        env:
+          DOTNET_EnableAotCompilationWarningsAsErrors: true
+
+      # ─── Run the native binary ───────────────────────────────────────────
+      - name: Run NativeAOT binary
+        run: |
+          chmod +x ./aot-output/EricksonLopez.Idempotency.AotSmokeTest
+          ./aot-output/EricksonLopez.Idempotency.AotSmokeTest
+          echo "Exit code: $?"
+
+      # ─── Upload binary for debugging if needed ────────────────────────────
+      - name: Upload AOT artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aot-output-${{ github.run_id }}
+          path: ./aot-output/
+          retention-days: 7

@@ -1,6 +1,14 @@
 # Copyright © Erickson Lopez. MIT License.
 name: Benchmark Regression Gate
 
+# ─── Purpose ─────────────────────────────────────────────────────────────────
+# Runs BenchmarkDotNet against the PR branch and compares the results against
+# the baseline captured on `main` (stored in benchmarks/results/).
+#
+# If any benchmark regresses by more than REGRESSION_THRESHOLD (default: 10%),
+# the CI gate FAILS with a detailed report showing the exact delta.
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   pull_request:
     branches: [ main, develop ]

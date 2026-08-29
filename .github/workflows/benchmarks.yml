@@ -1,18 +1,22 @@
 # Copyright © Erickson Lopez. MIT License.
 name: Benchmarks
 
+# ─── Purpose ─────────────────────────────────────────────────────────────────
+# Runs on-demand BenchmarkDotNet suites for EricksonLopez.Idempotency.
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   workflow_call:
     inputs:
       benchmark-filter:
-        description: "BenchmarkDotNet filter expression (e.g. '*')"
+        description: "BenchmarkDotNet filter expression (e.g. '*Crud*', '*' for all)"
         required: false
         default: "*"
         type: string
   workflow_dispatch:
     inputs:
       benchmark-filter:
-        description: "BenchmarkDotNet filter expression (e.g. '*')"
+        description: "BenchmarkDotNet filter expression (e.g. '*Crud*', '*' for all)"
         required: false
         default: "*"
         type: string

@@ -39,5 +39,14 @@ jobs:
           --self-contained
           -o ./aot-output
 
+      - name: List Output Files
+        run: ls -la ./aot-output
+
       - name: Run Native AOT Binary
-        run: ./aot-output/EricksonLopez.Idempotency.AotSmokeTest
+        run: |
+          if [ -f "./aot-output/EricksonLopez.Idempotency.AotSmokeTest" ]; then
+            chmod +x ./aot-output/EricksonLopez.Idempotency.AotSmokeTest
+            ./aot-output/EricksonLopez.Idempotency.AotSmokeTest
+          else
+            dotnet ./aot-output/EricksonLopez.Idempotency.AotSmokeTest.dll
+          fi

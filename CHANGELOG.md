@@ -5,6 +5,14 @@ All notable changes to `EricksonLopez.Idempotency` will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/ericksonlopezf/dotnet-idempotency/compare/v1.0.0...v1.0.1) (2026-08-29)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** grant contents: write permission to caller job stryker-gate in publish workflow ([62b412a](https://github.com/ericksonlopezf/dotnet-idempotency/commit/62b412addff33cb9340f56e653eccd0a7cfd54a7))
+* **ci:** harmonize test packages and runner dependencies for compliance quality gate ([0028a0e](https://github.com/ericksonlopezf/dotnet-idempotency/commit/0028a0eac4de70b6d9f929704aac38a637358ab0))
+
 ## [Unreleased]
 
 No unreleased changes at this time.

@@ -165,7 +165,7 @@ jobs:
         run: |
           set +e
           dotnet-stryker \
-            --config-file ${{ matrix.config }} \
+            --config-file ${{ github.workspace }}/${{ matrix.config }} \
             --mutation-level ${{ inputs.mutation-level || 'Standard' }} \
             --concurrency 2 \
             --output ${{ github.workspace }}/${{ matrix.output-dir }}
@@ -186,7 +186,7 @@ jobs:
       - name: Extract and report mutation score (${{ matrix.name }})
         id: report
         if: always()
-        run: node scripts/record-stryker-result.js "${{ matrix.output-dir }}" "${{ matrix.name }}" "${{ matrix.working-dir }}/${{ matrix.config }}"
+        run: node scripts/record-stryker-result.js "${{ matrix.output-dir }}" "${{ matrix.name }}" "${{ matrix.config }}"
 
       - name: Upload summary JSON (${{ matrix.name }})
         if: always()

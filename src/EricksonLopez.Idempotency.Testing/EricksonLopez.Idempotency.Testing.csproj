@@ -1,0 +1,17 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>EricksonLopez.Idempotency.Testing</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.Testing</AssemblyName>
+    <Description>Testing utilities, in-memory test stores, and mock helpers for EricksonLopez.Idempotency.</Description>
+    <PackageTags>$(CommonPackageTags);testing;test-doubles;in-memory;mocks;unit-testing;integration-testing</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EricksonLopez.Idempotency.Abstractions\EricksonLopez.Idempotency.Abstractions.csproj" />
+    <ProjectReference Include="..\EricksonLopez.Idempotency\EricksonLopez.Idempotency.csproj" />
+  </ItemGroup>
+
+</Project>

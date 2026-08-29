@@ -1,0 +1,27 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>EricksonLopez.Idempotency.PostgreSql</RootNamespace>
+    <AssemblyName>EricksonLopez.Idempotency.PostgreSql</AssemblyName>
+    <Description>PostgreSQL storage provider for EricksonLopez.Idempotency using Dapper and raw SQL.</Description>
+    <PackageTags>$(CommonPackageTags);postgresql;npgsql;dapper;sql;relational-database;database</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EricksonLopez.Idempotency.Abstractions\EricksonLopez.Idempotency.Abstractions.csproj" />
+    <ProjectReference Include="..\EricksonLopez.Idempotency\EricksonLopez.Idempotency.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EricksonLopez.Idempotency.PostgreSql.Tests" />
+  </ItemGroup>
+
+</Project>

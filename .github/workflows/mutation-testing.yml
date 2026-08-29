@@ -1,0 +1,375 @@
+# Copyright © Erickson Lopez. MIT License.
+name: Mutation Testing (Stryker)
+
+# ─── Purpose ─────────────────────────────────────────────────────────────────
+# Runs Stryker.NET mutation testing across all EricksonLopez.Idempotency packages:
+#   • Core Library (EricksonLopez.Idempotency)
+#   • Abstractions (EricksonLopez.Idempotency.Abstractions)
+#   • AspNetCore (EricksonLopez.Idempotency.AspNetCore)
+#   • MariaDb (EricksonLopez.Idempotency.MariaDb)
+#   • Mediator (EricksonLopez.Idempotency.Mediator)
+#   • MySql (EricksonLopez.Idempotency.MySql)
+#   • Oracle (EricksonLopez.Idempotency.Oracle)
+#   • PostgreSql (EricksonLopez.Idempotency.PostgreSql)
+#   • Redis (EricksonLopez.Idempotency.Redis)
+#   • Result (EricksonLopez.Idempotency.Result)
+#   • Sqlite (EricksonLopez.Idempotency.Sqlite)
+#   • SqlServer (EricksonLopez.Idempotency.SqlServer)
+#   • Testing (EricksonLopez.Idempotency.Testing)
+#
+# Threshold policy (single source of truth defined in stryker-*.json):
+#   • high  (≥100%) — ✅ HIGH
+#   • low   (≥ 98%) — 🟡 LOW
+#   • warn  (≥ 95%) — 🟠 WARNING (approaching break threshold)
+#   • break (< 95%) — ❌ FAILED (Stryker exits with non-zero code)
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      mutation-level:
+        description: "Stryker mutation level (Basic, Standard, Advanced)"
+        required: false
+        default: "Standard"
+        type: choice
+        options:
+          - Basic
+          - Standard
+          - Advanced
+  workflow_call:
+    inputs:
+      mutation-level:
+        description: "Stryker mutation level (Basic, Standard, Advanced)"
+        required: false
+        default: "Standard"
+        type: string
+  # Weekly scheduled execution (Monday 04:00 UTC) to catch regressions early
+  schedule:
+    - cron: "0 4 * * 1"
+
+concurrency:
+  group: mutation-testing-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+permissions:
+  contents: read
+
+jobs:
+  mutation-test:
+    name: Stryker — ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Core
+            working-dir: tests/EricksonLopez.Idempotency.Tests
+            config: stryker-core-config.json
+            output-dir: StrykerOutput/core
+            artifact-name: stryker-report-core
+          - name: Abstractions
+            working-dir: tests/EricksonLopez.Idempotency.Abstractions.Tests
+            config: stryker-abstractions-config.json
+            output-dir: StrykerOutput/abstractions
+            artifact-name: stryker-report-abstractions
+          - name: AspNetCore
+            working-dir: tests/EricksonLopez.Idempotency.AspNetCore.Tests
+            config: stryker-aspnetcore-config.json
+            output-dir: StrykerOutput/aspnetcore
+            artifact-name: stryker-report-aspnetcore
+          - name: MariaDb
+            working-dir: tests/EricksonLopez.Idempotency.MariaDb.Tests
+            config: stryker-mariadb-config.json
+            output-dir: StrykerOutput/mariadb
+            artifact-name: stryker-report-mariadb
+          - name: Mediator
+            working-dir: tests/EricksonLopez.Idempotency.Mediator.Tests
+            config: stryker-mediator-config.json
+            output-dir: StrykerOutput/mediator
+            artifact-name: stryker-report-mediator
+          - name: MySql
+            working-dir: tests/EricksonLopez.Idempotency.MySql.Tests
+            config: stryker-mysql-config.json
+            output-dir: StrykerOutput/mysql
+            artifact-name: stryker-report-mysql
+          - name: Oracle
+            working-dir: tests/EricksonLopez.Idempotency.Oracle.Tests
+            config: stryker-oracle-config.json
+            output-dir: StrykerOutput/oracle
+            artifact-name: stryker-report-oracle
+          - name: PostgreSql
+            working-dir: tests/EricksonLopez.Idempotency.PostgreSql.Tests
+            config: stryker-postgresql-config.json
+            output-dir: StrykerOutput/postgresql
+            artifact-name: stryker-report-postgresql
+          - name: Redis
+            working-dir: tests/EricksonLopez.Idempotency.Redis.Tests
+            config: stryker-redis-config.json
+            output-dir: StrykerOutput/redis
+            artifact-name: stryker-report-redis
+          - name: Result
+            working-dir: tests/EricksonLopez.Idempotency.Result.Tests
+            config: stryker-result-config.json
+            output-dir: StrykerOutput/result
+            artifact-name: stryker-report-result
+          - name: Sqlite
+            working-dir: tests/EricksonLopez.Idempotency.Sqlite.Tests
+            config: stryker-sqlite-config.json
+            output-dir: StrykerOutput/sqlite
+            artifact-name: stryker-report-sqlite
+          - name: SqlServer
+            working-dir: tests/EricksonLopez.Idempotency.SqlServer.Tests
+            config: stryker-sqlserver-config.json
+            output-dir: StrykerOutput/sqlserver
+            artifact-name: stryker-report-sqlserver
+          - name: Testing
+            working-dir: tests/EricksonLopez.Idempotency.Testing.Tests
+            config: stryker-testing-config.json
+            output-dir: StrykerOutput/testing
+            artifact-name: stryker-report-testing
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore Strong Name key
+        env:
+          SNK_KEY: ${{ secrets.SNK_KEY }}
+        run: |
+          if [ -n "$SNK_KEY" ]; then
+            echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
+          fi
+
+      - name: Restore dependencies
+        run: dotnet restore EricksonLopez.Idempotency.slnx
+
+      - name: Build (Release)
+        run: dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release
+
+      - name: Install Stryker
+        run: dotnet tool install --global dotnet-stryker
+
+      - name: Run Stryker (${{ matrix.name }})
+        id: stryker
+        working-directory: ${{ matrix.working-dir }}
+        run: |
+          set +e
+          dotnet-stryker \
+            --config-file ${{ github.workspace }}/${{ matrix.config }} \
+            --mutation-level ${{ inputs.mutation-level || 'Standard' }} \
+            --concurrency 2 \
+            --output ${{ github.workspace }}/${{ matrix.output-dir }}
+          STRYKER_EXIT_CODE=$?
+          echo "exit_code=$STRYKER_EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "Stryker finished with exit code: $STRYKER_EXIT_CODE"
+          exit 0
+
+      - name: Upload Stryker report (${{ matrix.name }})
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact-name }}-${{ github.run_id }}
+          path: ${{ matrix.output-dir }}/
+          retention-days: 30
+
+      # ─── Extract and report mutation score ───────────────────────────────
+      - name: Extract and report mutation score (${{ matrix.name }})
+        id: report
+        if: always()
+        run: node scripts/record-stryker-result.js "${{ matrix.output-dir }}" "${{ matrix.name }}" "${{ matrix.config }}"
+
+      - name: Upload summary JSON (${{ matrix.name }})
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: stryker-summary-${{ matrix.name }}
+          path: StrykerOutput/summary-${{ matrix.name }}.json
+          retention-days: 30
+
+      - name: Enforce Stryker exit code (${{ matrix.name }})
+        if: always()
+        run: |
+          if [ "${{ steps.stryker.outputs.exit_code }}" != "0" ]; then
+            echo "❌ Stryker execution failed for ${{ matrix.name }} with exit code ${{ steps.stryker.outputs.exit_code }}"
+            exit ${{ steps.stryker.outputs.exit_code }}
+          fi
+
+  # ─── Consolidated Gate Aggregation & Commit Status ───────────────────────────
+  mutation-gate-summary:
+    name: Consolidated Quality Gate & Commit Status
+    runs-on: ubuntu-latest
+    needs: mutation-test
+    if: always()
+    permissions:
+      contents: write
+      statuses: write
+      actions: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download all summary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: stryker-summary-*
+          path: ./all-summaries
+          merge-multiple: true
+
+      - name: Evaluate Consolidated Mutation Quality Gate
+        id: eval-gate
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const summariesDir = path.join(process.cwd(), 'all-summaries');
+            let summaryFiles = [];
+            if (fs.existsSync(summariesDir)) {
+              summaryFiles = fs.readdirSync(summariesDir).filter(f => f.startsWith('summary-') && f.endsWith('.json'));
+            }
+
+            console.log(`Found ${summaryFiles.length} summary files in ${summariesDir}`);
+
+            const packages = [];
+            let totalKilled = 0;
+            let totalMutants = 0;
+            let allPassed = summaryFiles.length > 0;
+            let breakThreshold = 95;
+
+            for (const file of summaryFiles) {
+              try {
+                const data = JSON.parse(fs.readFileSync(path.join(summariesDir, file), 'utf8'));
+                packages.push(data);
+                totalKilled += data.mutants_killed || data.killed || 0;
+                totalMutants += data.total_mutants || data.total || 0;
+                if (!data.passed_break && !data.passed) {
+                  allPassed = false;
+                }
+                if (data.threshold_break || data.break) {
+                  breakThreshold = data.threshold_break || data.break;
+                }
+              } catch (e) {
+                console.error(`Error reading ${file}:`, e.message);
+                allPassed = false;
+              }
+            }
+
+            const overallScore = totalMutants > 0 ? ((totalKilled / totalMutants) * 100).toFixed(2) : "0.00";
+            const numScore = parseFloat(overallScore);
+
+            let statusLabel = '❌ FAILED';
+            if (allPassed && totalMutants > 0 && numScore >= 100) {
+              statusLabel = '✅ HIGH';
+            } else if (allPassed && totalMutants > 0 && numScore >= 98) {
+              statusLabel = '🟡 LOW';
+            } else if (allPassed && totalMutants > 0 && numScore >= breakThreshold) {
+              statusLabel = '🟠 WARNING';
+            } else {
+              statusLabel = '❌ FAILED';
+              allPassed = false;
+            }
+
+            console.log(`Consolidated Score: ${overallScore}%`);
+            const execDate = new Date().toISOString();
+
+            // Append Consolidated Summary Table to Step Summary
+            let md = `\n# 🛡️ Consolidated Stryker Mutation Testing Gate\n\n`;
+            md += `| Metric | Value |\n`;
+            md += `|--------|-------|\n`;
+            md += `| **Overall Mutation Score** | **${overallScore}%** |\n`;
+            md += `| **Mutants Killed** | ${totalKilled} |\n`;
+            md += `| **Total Mutants** | ${totalMutants} |\n`;
+            md += `| **Threshold High** | ≥100% |\n`;
+            md += `| **Threshold Low** | ≥98% |\n`;
+            md += `| **Threshold Break** | ≥${breakThreshold}% |\n`;
+            md += `| **Overall Status** | ${statusLabel} |\n`;
+            md += `| **Commit SHA** | \`${context.sha.substring(0, 7)}\` (\`${context.sha}\`) |\n`;
+            md += `| **Execution Date** | ${execDate} |\n\n`;
+
+            md += `### Package Breakdown\n\n`;
+            md += `| Package | Score | Killed / Total | Status |\n`;
+            md += `|---------|-------|----------------|--------|\n`;
+            for (const p of packages) {
+              md += `| **${p.package}** | **${p.mutation_score || p.score}%** | ${p.mutants_killed || p.killed}/${p.total_mutants || p.total} | ${p.status} |\n`;
+            }
+            md += `| **OVERALL** | **${overallScore}%** | **${totalKilled}/${totalMutants}** | **${statusLabel}** |\n\n`;
+            md += `**Gate Verdict**: ${allPassed ? '✅ PASSED' : '❌ FAILED'} (Break Threshold: ≥${breakThreshold}%)\n`;
+
+            const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+            if (summaryPath && fs.existsSync(path.dirname(summaryPath))) {
+              fs.appendFileSync(summaryPath, md, 'utf8');
+            }
+
+            // Post GitHub Commit Status
+            const targetSha = context.sha;
+            const state = allPassed ? 'success' : 'failure';
+            const description = `Score: ${overallScore}% (${packages.filter(p => p.passed_break || p.passed).length}/${packages.length} packages >= ${breakThreshold}%) - ${statusLabel}`;
+
+            console.log(`Publishing commit status for ${targetSha}: state=${state}, description="${description}"`);
+
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: targetSha,
+                state: state,
+                context: 'mutation-testing/stryker',
+                description: description.substring(0, 140),
+                target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+              });
+              console.log('✅ Successfully created commit status mutation-testing/stryker');
+            } catch (err) {
+              console.error('⚠️ Failed to create commit status:', err.message);
+            }
+
+            // Update README.md badge with rounded-up integer score if gate passed
+            if (allPassed) {
+              const roundedScore = Math.ceil(parseFloat(overallScore));
+              const badgeColor = roundedScore >= 98 ? 'brightgreen' : (roundedScore >= 90 ? 'green' : 'yellow');
+              const readmePath = 'README.md';
+              if (fs.existsSync(readmePath)) {
+                const readme = fs.readFileSync(readmePath, 'utf8');
+                const updatedReadme = readme.replace(
+                  /(img\.shields\.io\/badge\/Mutation_Score-)[^?-]+-[a-z]+(\?[^)\s]*)/g,
+                  (m, p1, p2) => `${p1}${roundedScore}%25-${badgeColor}${p2}`
+                );
+
+                if (updatedReadme !== readme) {
+                  fs.writeFileSync(readmePath, updatedReadme, 'utf8');
+                  console.log(`📝 Updated README.md with Mutation Score: ${roundedScore}%`);
+                  try {
+                    const { execSync } = require('child_process');
+                    execSync('git config user.name "github-actions[bot]"', { stdio: 'inherit' });
+                    execSync('git config user.email "github-actions[bot]@users.noreply.github.com"', { stdio: 'inherit' });
+                    execSync('git add README.md', { stdio: 'inherit' });
+                    execSync(`git commit -m "docs: update mutation score badge to ${roundedScore}% [skip ci]"`, { stdio: 'inherit' });
+                    execSync('git push origin HEAD:main', { stdio: 'inherit' });
+                    console.log(`🚀 Successfully committed and pushed README.md mutation score badge (${roundedScore}%)`);
+                  } catch (gitErr) {
+                    console.error('⚠️ Could not push README update:', gitErr.message);
+                  }
+                } else {
+                  console.log(`ℹ️ README.md already contains mutation score badge for ${roundedScore}%`);
+                }
+              }
+            }
+
+            if (!allPassed) {
+              core.setFailed(`Consolidated Stryker Mutation Testing Gate failed: score=${overallScore}%, passed=${allPassed}`);
+            }

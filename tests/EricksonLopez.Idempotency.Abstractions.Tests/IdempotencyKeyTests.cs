@@ -141,6 +141,95 @@ public sealed class IdempotencyKeyTests
     }
 
     [Fact]
+    public void Empty_And_DefaultStruct_BehaveCorrectly()
+    {
+        IdempotencyKey.Empty.Value.Should().Be(string.Empty);
+        IdempotencyKey.Empty.IsEmpty.Should().BeTrue();
+        IdempotencyKey.Empty.ToString().Should().Be(string.Empty);
+
+        IdempotencyKey defaultKey = default;
+        defaultKey.Value.Should().Be(string.Empty);
+        defaultKey.IsEmpty.Should().BeTrue();
+        defaultKey.ToString().Should().Be(string.Empty);
+
+        var initializedKey = new IdempotencyKey("active-key");
+        initializedKey.IsEmpty.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Constructor_TrimsSurroundingWhitespace()
+    {
+        var key = new IdempotencyKey("   padded-key   ");
+        key.Value.Should().Be("padded-key");
+
+        var paddedMax = "   " + new string('k', 128) + "   ";
+        var keyMax = new IdempotencyKey(paddedMax);
+        keyMax.Value.Length.Should().Be(128);
+    }
+
+    [Fact]
+    public void Create_WithGuid_WorksAndValidatesInvariants()
+    {
+        var actEmpty = () => IdempotencyKey.Create(Guid.Empty);
+        actEmpty.Should().Throw<ArgumentException>()
+            .WithParameterName("identifier")
+            .WithMessage("*Idempotency key cannot be created from Guid.Empty.*");
+
+        var id = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
+        var key = IdempotencyKey.Create(id);
+        key.Value.Should().Be("0123456789abcdef0123456789abcdef");
+    }
+
+    [Fact]
+    public void NewKey_GeneratesNonEmptyUniqueKey()
+    {
+        var key1 = IdempotencyKey.NewKey();
+        var key2 = IdempotencyKey.NewKey();
+
+        key1.IsEmpty.Should().BeFalse();
+        key1.Value.Length.Should().Be(32);
+        (key1 != key2).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\n")]
+    public void TryParse_WithInvalidNullOrWhitespace_ReturnsFalse(string? candidate)
+    {
+        var success = IdempotencyKey.TryParse(candidate, out var key);
+        success.Should().BeFalse();
+        key.Should().Be(default(IdempotencyKey));
+        key.IsEmpty.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TryParse_WithTooLongString_ReturnsFalse()
+    {
+        var tooLong = new string('z', 129);
+        var success = IdempotencyKey.TryParse(tooLong, out var key);
+        success.Should().BeFalse();
+        key.Should().Be(default(IdempotencyKey));
+    }
+
+    [Fact]
+    public void TryParse_WithValidAndBoundaryStrings_ReturnsTrue()
+    {
+        var exactMax = new string('z', 128);
+        var successMax = IdempotencyKey.TryParse(exactMax, out var keyMax);
+        successMax.Should().BeTrue();
+        keyMax.Value.Should().Be(exactMax);
+        keyMax.IsEmpty.Should().BeFalse();
+
+        var paddedString = "   valid-parsed-key   ";
+        var successPadded = IdempotencyKey.TryParse(paddedString, out var keyPadded);
+        successPadded.Should().BeTrue();
+        keyPadded.Value.Should().Be("valid-parsed-key");
+    }
+
+    [Fact]
     public void CompareToObject_WorksCorrectly()
     {
         var keyA = new IdempotencyKey("aaa");

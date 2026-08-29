@@ -107,6 +107,7 @@ public sealed class CachedResponseAndExceptionTests
     {
         var options = new IdempotencyOptions();
 
+        options.Enabled.Should().BeTrue();
         options.RequireIdempotencyKey.Should().BeFalse();
         options.DefaultLeaseDuration.Should().Be(TimeSpan.FromSeconds(30));
         options.DefaultRetentionDuration.Should().Be(TimeSpan.FromDays(7));
@@ -117,6 +118,7 @@ public sealed class CachedResponseAndExceptionTests
         options.TenantIdExtractor.Should().BeNull();
 
         var expectedTenant = Guid.NewGuid();
+        options.Enabled = false;
         options.RequireIdempotencyKey = true;
         options.DefaultLeaseDuration = TimeSpan.FromMinutes(1);
         options.DefaultRetentionDuration = TimeSpan.FromDays(30);
@@ -126,6 +128,7 @@ public sealed class CachedResponseAndExceptionTests
         options.CacheOnlySuccessResponses = false;
         options.TenantIdExtractor = _ => expectedTenant;
 
+        options.Enabled.Should().BeFalse();
         options.RequireIdempotencyKey.Should().BeTrue();
         options.DefaultLeaseDuration.Should().Be(TimeSpan.FromMinutes(1));
         options.DefaultRetentionDuration.Should().Be(TimeSpan.FromDays(30));

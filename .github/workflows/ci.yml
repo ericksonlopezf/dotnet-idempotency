@@ -12,6 +12,7 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+  workflow_dispatch:
 
 jobs:
   compliance:
@@ -22,13 +23,10 @@ jobs:
     name: Build & Test
     needs: [ compliance ]
     uses: ./.github/workflows/dotnet-build-test.yml
-    secrets:
-      SNK_KEY: ${{ secrets.SNK_KEY }}
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    secrets: inherit
 
   aot-smoke-test:
     name: Native AOT Smoke Test
     needs: [ build-and-test ]
     uses: ./.github/workflows/aot-smoke-test.yml
-    secrets:
-      SNK_KEY: ${{ secrets.SNK_KEY }}
+    secrets: inherit

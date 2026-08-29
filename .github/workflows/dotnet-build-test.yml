@@ -8,6 +8,8 @@ on:
         required: false
       CODECOV_TOKEN:
         required: false
+      SONAR_TOKEN:
+        required: false
   workflow_dispatch:
 
 jobs:
@@ -21,6 +23,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Java (for SonarCloud)
+        if: ${{ secrets.SONAR_TOKEN != '' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Setup .NET SDKs
         uses: actions/setup-dotnet@v4
@@ -38,8 +47,27 @@ jobs:
             echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
           fi
 
+      - name: Install SonarScanner tool
+        if: ${{ secrets.SONAR_TOKEN != '' }}
+        run: dotnet tool install --global dotnet-sonarscanner
+
       - name: Restore dependencies
         run: dotnet restore EricksonLopez.Idempotency.slnx
+
+      - name: SonarCloud Begin
+        if: ${{ secrets.SONAR_TOKEN != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: >
+          dotnet-sonarscanner begin
+          /k:"ericksonlopezf_dotnet-idempotency"
+          /o:"ericksonlopezf"
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          /d:sonar.host.url="https://sonarcloud.io"
+          /d:sonar.cs.vstest.reportsPaths="**/TestResults/*.trx"
+          /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"
+          /d:sonar.coverage.exclusions="benchmarks/**,samples/**,tests/**"
 
       - name: Build Solution (Release)
         run: dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release
@@ -52,7 +80,14 @@ jobs:
           --collect:"XPlat Code Coverage"
           --results-directory ./TestResults
           --logger "trx;LogFileName=test_results.trx"
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover,cobertura
+
+      - name: SonarCloud End
+        if: ${{ secrets.SONAR_TOKEN != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
       - name: Upload Test Results
         if: always()

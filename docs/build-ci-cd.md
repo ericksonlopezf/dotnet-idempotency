@@ -85,15 +85,19 @@ Compiles the solution across target frameworks, executes tests with code coverag
 - **File**: `.github/workflows/dotnet-build-test.yml`
 - **Triggers**: `workflow_call`, `workflow_dispatch`
 - **Runner**: `ubuntu-latest` (Timeout: 30 minutes)
-- **Secrets**: `SNK_KEY` (optional), `CODECOV_TOKEN` (optional)
+- **Secrets**: `SNK_KEY` (optional), `CODECOV_TOKEN` (optional), `SONAR_TOKEN` (optional)
 - **Steps**:
-  1. Setup .NET SDKs for multi-targeting: `8.0.x`, `9.0.x`, `10.0.x`.
-  2. Restore Strong Name signing key from `SNK_KEY` to `EricksonLopez.snk`.
-  3. `dotnet restore EricksonLopez.Idempotency.slnx` using Central Package Management.
-  4. `dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release` (`TreatWarningsAsErrors=true`).
-  5. `dotnet test EricksonLopez.Idempotency.slnx` with `XPlat Code Coverage` (Cobertura format) and TRX test logger.
-  6. Upload TRX test results as GitHub Actions artifact (`test-results-${{ github.run_id }}`).
-  7. Upload coverage reports to Codecov via `codecov/codecov-action@v4`.
+  1. Setup Java 17 (Temurin) for SonarScanner.
+  2. Setup .NET SDKs for multi-targeting: `8.0.x`, `9.0.x`, `10.0.x`.
+  3. Restore Strong Name signing key from `SNK_KEY` to `EricksonLopez.snk`.
+  4. Install `dotnet-sonarscanner` global tool.
+  5. `dotnet restore EricksonLopez.Idempotency.slnx` using Central Package Management.
+  6. Execute `dotnet-sonarscanner begin` with OpenCover, TRX reports paths, and test exclusions.
+  7. `dotnet build EricksonLopez.Idempotency.slnx --no-restore --configuration Release` (`TreatWarningsAsErrors=true`).
+  8. `dotnet test EricksonLopez.Idempotency.slnx` with `XPlat Code Coverage` (OpenCover and Cobertura formats) and TRX test logger.
+  9. Execute `dotnet-sonarscanner end` to publish SonarCloud quality gate analysis.
+  10. Upload TRX test results as GitHub Actions artifact (`test-results-${{ github.run_id }}`).
+  11. Upload coverage reports to Codecov via `codecov/codecov-action@v4`.
 
 ---
 
@@ -224,6 +228,7 @@ Weekly scheduled job that runs comprehensive benchmarks across TFMs and commits 
 |---|---|---|
 | `SNK_KEY` | `ci.yml`, `dotnet-build-test.yml`, `aot-smoke-test.yml`, `publish.yml`, `mutation-testing.yml`, `benchmark-regression-gate.yml`, `benchmarks.yml`, `weekly-benchmarks.yml` | Base64-encoded Strong Name private signing key used to compile strongly-named assemblies. |
 | `CODECOV_TOKEN` | `ci.yml`, `dotnet-build-test.yml` | Codecov repository upload token for aggregating test coverage metrics. |
+| `SONAR_TOKEN` | `ci.yml`, `dotnet-build-test.yml` | SonarCloud authentication token for running Roslyn code analysis and publishing Quality Gate metrics. |
 | `NUGET_API_KEY` | `publish.yml` | API Key for authenticating package uploads to `api.nuget.org`. |
 
 ---

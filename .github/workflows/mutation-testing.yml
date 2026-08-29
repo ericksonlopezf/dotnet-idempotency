@@ -231,7 +231,7 @@ jobs:
 
       - name: Evaluate Consolidated Mutation Quality Gate
         id: eval-gate
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

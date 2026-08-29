@@ -52,7 +52,7 @@ jobs:
 
       - name: Evaluate Mutation Quality Gate on main
         id: check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const verifyMutationGate = require('./scripts/verify-mutation-gate.js');

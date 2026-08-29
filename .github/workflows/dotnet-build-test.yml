@@ -89,7 +89,7 @@ jobs:
             /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml,test-results/**/coverage.opencover.xml" \
             /d:sonar.exclusions="docs/**,samples/**,benchmarks/**,scripts/**,**/bin/**,**/obj/**,**/*.js,**/.github/**" \
             /d:sonar.coverage.exclusions="tests/**,samples/**,benchmarks/**,docs/**,**/*Tests.cs,**/*Test*.cs,**/tests/**,**/benchmarks/**,**/samples/**,**/bin/**,**/obj/**,**/*Generator*.cs,**/*Analyzer*.cs,**/EquatableArray.cs,**/GeneratorHelpers.cs,**/Shared/**,**/*.g.cs,**/Generated/**" \
-            /d:sonar.cpd.exclusions="tests/**,**/tests/**,**/*Tests.cs,**/*Test*.cs,**/samples/**,**/benchmarks/**,**/bin/**,**/obj/**,**/*Generator*.cs,**/*Analyzer*.cs,**/EquatableArray.cs,**/GeneratorHelpers.cs,**/Shared/**,**/Models/**,**/SourceBuilder.cs,**/DiagnosticDescriptors.cs,**/*Template*.cs,**/*Converter*.cs,**/*Handler*.cs,**/*Provider*.cs,**/*.g.cs,**/Generated/**"
+            /d:sonar.cpd.exclusions="tests/**,**/tests/**,**/*Tests.cs,**/*Test*.cs,**/samples/**,**/benchmarks/**,**/bin/**,**/obj/**,**/*Generator*.cs,**/*Analyzer*.cs,**/EquatableArray.cs,**/GeneratorHelpers.cs,**/Shared/**,**/Models/**,**/SourceBuilder.cs,**/DiagnosticDescriptors.cs,**/*Template*.cs,**/*Converter*.cs,**/*Handler*.cs,**/*Provider*.cs,**/*Store*.cs,**/*Scripts*.cs,**/*Dto*.cs,**/*.g.cs,**/Generated/**"
 
       - name: Build (Release)
         run: dotnet build EricksonLopez.Idempotency.slnx --configuration Release

@@ -1,0 +1,34 @@
+# Copyright © Erickson Lopez. MIT License.
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+jobs:
+  compliance:
+    name: Repo Compliance
+    uses: ./.github/workflows/repo-compliance.yml
+
+  build-and-test:
+    name: Build & Test
+    needs: [ compliance ]
+    uses: ./.github/workflows/dotnet-build-test.yml
+    secrets:
+      SNK_KEY: ${{ secrets.SNK_KEY }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  aot-smoke-test:
+    name: Native AOT Smoke Test
+    needs: [ build-and-test ]
+    uses: ./.github/workflows/aot-smoke-test.yml
+    secrets:
+      SNK_KEY: ${{ secrets.SNK_KEY }}

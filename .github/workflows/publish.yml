@@ -1,0 +1,79 @@
+# Copyright © Erickson Lopez. MIT License.
+name: Publish Packages
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      skip_mutation_gate:
+        description: 'Bypass mutation testing check (emergency only)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  statuses: read
+  actions: read
+
+jobs:
+  verify-mutation-gate:
+    name: Verify Mutation Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Audit Mutation Quality Gate Evidence
+        if: ${{ !(github.event.inputs.skip_mutation_gate == 'true' || github.event.inputs.skip_mutation_gate == true) }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python3 scripts/verify-stryker-gate.py "${{ github.sha }}" "stryker-config.json"
+
+      - name: Log Bypass Warning
+        if: ${{ github.event.inputs.skip_mutation_gate == 'true' || github.event.inputs.skip_mutation_gate == true }}
+        run: |
+          echo "⚠️ WARNING: Mutation testing quality gate was explicitly bypassed via workflow_dispatch input."
+
+  publish:
+    name: Pack & Push to NuGet
+    needs: [ verify-mutation-gate ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Strong Name key
+        env:
+          SNK_KEY: ${{ secrets.SNK_KEY }}
+        run: |
+          if [ -n "$SNK_KEY" ]; then
+            echo "$SNK_KEY" | tr -d '\n\r ' | base64 --decode > EricksonLopez.snk
+          fi
+
+      - name: Pack Packages
+        run: dotnet pack EricksonLopez.Idempotency.slnx -c Release -o ./artifacts
+
+      - name: Push to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -n "$NUGET_API_KEY" ]; then
+            dotnet nuget push "./artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          fi

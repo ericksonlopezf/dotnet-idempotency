@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" VersionOverride="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
 
 </Project>

@@ -32,10 +32,12 @@ public sealed class IdempotencyMiddleware
     /// </summary>
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="store">The persistence store for recording idempotency state.</param>
-    /// <param name="options">The idempotency configuration options.</param>
+    /// <param name="optionsAccessor">The idempotency configuration options accessor.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task InvokeAsync(HttpContext context, IIdempotencyStore store, IdempotencyOptions options)
+    public async Task InvokeAsync(HttpContext context, IIdempotencyStore store, Microsoft.Extensions.Options.IOptions<IdempotencyOptions> optionsAccessor)
     {
+        var options = optionsAccessor?.Value ?? new IdempotencyOptions();
+
         // F-001: global kill-switch — pass through without any idempotency enforcement.
         if (!options.Enabled)
         {
@@ -62,7 +64,7 @@ public sealed class IdempotencyMiddleware
 
         if (!hasHeader)
         {
-            if (idempotentAttr?.Required == true || options.RequireIdempotencyKey)
+            if (idempotentAttr?.Required ?? options.RequireIdempotencyKey)
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Response.ContentType = "application/problem+json";
@@ -80,7 +82,24 @@ public sealed class IdempotencyMiddleware
             return;
         }
 
-        var key = new IdempotencyKey(rawKey.ToString());
+        IdempotencyKey key;
+        try
+        {
+            key = new IdempotencyKey(rawKey.ToString());
+        }
+        catch (Exception ex) when (ex is ArgumentException or ArgumentOutOfRangeException)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            context.Response.ContentType = "application/problem+json";
+            var problem = new IdempotencyProblemDetails(
+                "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                "Invalid Idempotency Key",
+                400,
+                ex.Message);
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(problem, IdempotencyJsonContext.Default.IdempotencyProblemDetails);
+            await context.Response.Body.WriteAsync(bytes, context.RequestAborted).ConfigureAwait(false);
+            return;
+        }
         var tenantId = ExtractTenantId(context, options);
         var scope = idempotentAttr?.Scope ?? (string.IsNullOrEmpty(context.Request.Path.Value) ? "/" : context.Request.Path.Value);
         var subject = context.User?.FindFirst("sub")?.Value;
@@ -116,6 +135,8 @@ public sealed class IdempotencyMiddleware
         var leaseDuration = idempotentAttr != null ? TimeSpan.FromSeconds(idempotentAttr.LeaseDurationSeconds) : options.DefaultLeaseDuration;
         var retentionDuration = idempotentAttr != null ? TimeSpan.FromDays(idempotentAttr.RetentionDurationDays) : options.DefaultRetentionDuration;
 
+        IdempotencyDiagnostics.RecordRequest(scope);
+
         var claim = await store.TryAcquireAsync(
             tenantId,
             scope,
@@ -127,6 +148,7 @@ public sealed class IdempotencyMiddleware
 
         if (claim.Status == ClaimResultStatus.FingerprintMismatch)
         {
+            IdempotencyDiagnostics.RecordFingerprintMismatch(scope);
             context.Response.StatusCode = StatusCodes.Status409Conflict;
             context.Response.ContentType = "application/problem+json";
             var problem = new IdempotencyProblemDetails(
@@ -141,6 +163,7 @@ public sealed class IdempotencyMiddleware
 
         if (claim.Status == ClaimResultStatus.InFlightConflict)
         {
+            IdempotencyDiagnostics.RecordConflict(scope);
             context.Response.StatusCode = StatusCodes.Status409Conflict;
             context.Response.Headers.RetryAfter = "2";
             context.Response.ContentType = "application/problem+json";
@@ -156,6 +179,8 @@ public sealed class IdempotencyMiddleware
 
         if (claim.Status == ClaimResultStatus.CompletedReplay)
         {
+            IdempotencyDiagnostics.RecordDuplicate(scope);
+            IdempotencyDiagnostics.RecordReplayed(scope);
             if (claim.CachedResponse != null)
             {
                 context.Response.Headers["X-Idempotency-Replayed"] = "true";
@@ -190,6 +215,7 @@ public sealed class IdempotencyMiddleware
             // Non-2xx responses are marked as failed so the client can retry with the same key.
             if (options.CacheOnlySuccessResponses && !isSuccess)
             {
+                IdempotencyDiagnostics.RecordFailed(scope);
                 if (claim.OwnerToken.HasValue && claim.ConcurrencyVersion.HasValue)
                 {
                     await store.MarkFailedAsync(
@@ -204,7 +230,9 @@ public sealed class IdempotencyMiddleware
             }
 
             var headersToPersist = context.Response.Headers
-                .Where(h => !h.Key.StartsWith(':') && !h.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+                .Where(h => !h.Key.StartsWith(':') 
+                         && !h.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase)
+                         && !options.ResponseHeadersBlocklist.Contains(h.Key))
                 .ToDictionary(h => h.Key, h => h.Value.Select(v => v ?? string.Empty).ToArray());
 
             await store.MarkCompletedAsync(
@@ -218,9 +246,12 @@ public sealed class IdempotencyMiddleware
                 responseBytes,
                 retentionDuration,
                 CancellationToken.None).ConfigureAwait(false);
+
+            IdempotencyDiagnostics.RecordCompleted(scope);
         }
         catch (Exception)
         {
+            IdempotencyDiagnostics.RecordFailed(scope);
             if (claim.OwnerToken.HasValue && claim.ConcurrencyVersion.HasValue)
             {
                 await store.MarkFailedAsync(

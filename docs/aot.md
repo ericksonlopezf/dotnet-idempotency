@@ -61,11 +61,11 @@ status:
 | `EricksonLopez.Idempotency.AspNetCore` | ✅ Yes | Zero reflection, source-generated JSON |
 | `EricksonLopez.Idempotency.Mediator` | ✅ Yes | Zero reflection |
 | `EricksonLopez.Idempotency.PostgreSql` | ✅ Yes | Npgsql 10.x is AOT-compatible |
-| `EricksonLopez.Idempotency.SqlServer` | ✅ Yes | Microsoft.Data.SqlClient 5.x is AOT-compatible |
+| `EricksonLopez.Idempotency.SqlServer` | ✅ Yes | Microsoft.Data.SqlClient 7.x is AOT-compatible |
 | `EricksonLopez.Idempotency.Sqlite` | ✅ Yes | Microsoft.Data.Sqlite 10.x is AOT-compatible |
 | `EricksonLopez.Idempotency.MySql` | ✅ Yes | MySqlConnector 2.x is AOT-compatible |
 | `EricksonLopez.Idempotency.MariaDb` | ✅ Yes | MySqlConnector 2.x is AOT-compatible |
-| `EricksonLopez.Idempotency.Redis` | ✅ Yes | StackExchange.Redis 2.8+ is AOT-compatible |
+| `EricksonLopez.Idempotency.Redis` | ✅ Yes | StackExchange.Redis 3.x is AOT-compatible |
 | `EricksonLopez.Idempotency.Oracle` | ⚠️ **NO** | `Oracle.ManagedDataAccess.Core` uses reflection internally; AOT publishing will produce trimming warnings and may fail at runtime |
 | `EricksonLopez.Idempotency.Testing` | ✅ Yes | In-memory only, no native dependencies |
 

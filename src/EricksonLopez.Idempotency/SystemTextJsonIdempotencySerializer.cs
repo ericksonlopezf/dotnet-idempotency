@@ -1,6 +1,7 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
@@ -20,9 +21,44 @@ public sealed class SystemTextJsonIdempotencySerializer : IIdempotencySerializer
     [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode", Justification = "Fallback resolver is combined with source generated resolver for non-AOT scenarios.")]
     public SystemTextJsonIdempotencySerializer()
     {
+        var defaultResolver = new DefaultJsonTypeInfoResolver();
+        defaultResolver.Modifiers.Add(typeInfo =>
+        {
+            var isSuccessProp = typeInfo.Properties.FirstOrDefault(p => p.Name.Equals("IsSuccess", StringComparison.OrdinalIgnoreCase));
+            var isFailureProp = typeInfo.Properties.FirstOrDefault(p => p.Name.Equals("IsFailure", StringComparison.OrdinalIgnoreCase));
+            if (isSuccessProp != null && isFailureProp != null)
+            {
+                foreach (var prop in typeInfo.Properties)
+                {
+                    if (prop.Name.Equals("Error", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var originalGetter = prop.Get;
+                        prop.Get = obj =>
+                        {
+                            if (obj != null && isSuccessProp.Get?.Invoke(obj) is true)
+                                return null;
+                            return originalGetter != null && obj != null ? originalGetter(obj) : null;
+                        };
+                        prop.ShouldSerialize = (obj, _) => obj != null && isFailureProp.Get?.Invoke(obj) is true;
+                    }
+                    else if (prop.Name.Equals("Value", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var originalGetter = prop.Get;
+                        prop.Get = obj =>
+                        {
+                            if (obj != null && isFailureProp.Get?.Invoke(obj) is true)
+                                return null;
+                            return originalGetter != null && obj != null ? originalGetter(obj) : null;
+                        };
+                        prop.ShouldSerialize = (obj, _) => obj != null && isSuccessProp.Get?.Invoke(obj) is true;
+                    }
+                }
+            }
+        });
+
         _options = new JsonSerializerOptions
         {
-            TypeInfoResolver = JsonTypeInfoResolver.Combine(IdempotencyJsonContext.Default, new DefaultJsonTypeInfoResolver()),
+            TypeInfoResolver = JsonTypeInfoResolver.Combine(IdempotencyJsonContext.Default, defaultResolver),
             PropertyNameCaseInsensitive = true
         };
     }

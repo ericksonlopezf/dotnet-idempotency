@@ -18,7 +18,7 @@ public sealed class AspNetCoreIntegrationTests
     public async Task IdempotencyMiddleware_WithValidKey_ExecutesAndReplays()
     {
         var store = new InMemoryIdempotencyStore();
-        var options = new IdempotencyOptions { RequireIdempotencyKey = false };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = false });
 
         var executionCount = 0;
         RequestDelegate next = ctx =>
@@ -50,7 +50,7 @@ public sealed class AspNetCoreIntegrationTests
     public async Task IdempotencyMiddleware_WithMismatchedPayload_ReturnsConflict409()
     {
         var store = new InMemoryIdempotencyStore();
-        var options = new IdempotencyOptions { RequireIdempotencyKey = false };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = false });
 
         RequestDelegate next = ctx =>
         {

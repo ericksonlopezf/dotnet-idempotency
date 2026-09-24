@@ -8,9 +8,10 @@ We provide security patches and updates for the following versions of `EricksonL
 
 | Version | Target Framework | Status | Supported Until |
 |---|---|---|---|
-| **1.0.x** | `.NET 10.0` (`net10.0`) | **Current / Active** | November 2028 (Aligned with .NET 10 LTS) |
-| **1.0.x** | `.NET 9.0` (`net9.0`) | **Active** | May 2026 (Aligned with .NET 9 STS) |
-| **1.0.x** | `.NET 8.0` (`net8.0`) | **Active** | November 2026 (Aligned with .NET 8 LTS) |
+| **2.0.x** | `.NET 10.0` (`net10.0`) | **Current / Active** | November 2028 (Aligned with .NET 10 LTS) |
+| **2.0.x** | `.NET 9.0` (`net9.0`) | **Active** | May 2026 (Aligned with .NET 9 STS) |
+| **2.0.x** | `.NET 8.0` (`net8.0`) | **Active** | November 2026 (Aligned with .NET 8 LTS) |
+| **1.0.x** | `.NET 10.0`, `.NET 9.0`, `.NET 8.0` | **Maintenance** | August 2027 |
 | `< 1.0.0` | Any | End of Life | Not Supported |
 
 ---
@@ -53,6 +54,8 @@ If you discover a security vulnerability in `EricksonLopez.Idempotency`, please 
 │                              │ prevent split-brain commits by zombie nodes. │
 │ Max Body Size Limits         │ Configurable MaxRequestBodySizeBytes buffer  │
 │                              │ caps prevent Denial of Service (DoS) memory. │
+│ Sensitive Header Blocklist   │ Configurable ResponseHeadersBlocklist strips │
+│                              │ Set-Cookie, Authorization, & credentials.    │
 └──────────────────────────────┴──────────────────────────────────────────────┘
 ```
 
@@ -60,6 +63,8 @@ If you discover a security vulnerability in `EricksonLopez.Idempotency`, please 
 
 ## 4. Supply Chain Security
 
+- **Sigstore Build Provenance Attestation**: All release packages generate cryptographic build provenance attestations via `actions/attest-build-provenance` using GitHub OIDC tokens before publication.
+- **NuGet Trusted Publishing (OIDC)**: Packages are published to NuGet.org via short-lived OpenID Connect (OIDC) identity federation (`NuGet/login`), eliminating static API keys and long-lived credentials.
 - **Central Package Management (CPM)**: All transitive and direct dependencies are pinned centrally in `Directory.Packages.props`.
 - **Strong Name Signing**: All assembly binaries are strongly named using `EricksonLopez.snk` and verified at compile time. The private key is stored as the `SNK_KEY` GitHub Actions secret (base64-encoded).
 - **Reproducible Builds & SourceLink**: Symbol packages (`.snupkg`) and SourceLink metadata are published with every package.

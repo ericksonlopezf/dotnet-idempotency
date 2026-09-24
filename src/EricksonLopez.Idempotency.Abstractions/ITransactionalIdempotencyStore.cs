@@ -13,7 +13,7 @@ namespace EricksonLopez.Idempotency;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Implementing stores that use SQL databases (PostgreSQL, SQL Server, MySQL, MariaDB, SQLite, Oracle)
+/// Implementing stores that use relational databases (PostgreSQL, SQL Server, MySQL, MariaDB, Oracle)
 /// implement this interface to allow the caller to share an existing <see cref="IDbConnection"/> and
 /// optional <see cref="IDbTransaction"/> with the idempotency store operations.
 /// </para>

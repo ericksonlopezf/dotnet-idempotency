@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 When an API receives a command that publishes integration events via an Outbox table, network dropouts on the response must not cause duplicate events upon client retry.
 

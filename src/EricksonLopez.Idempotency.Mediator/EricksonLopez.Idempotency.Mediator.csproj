@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.Mediator</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.Mediator</AssemblyName>
     <Description>Mediator pipeline behavior integration for EricksonLopez.Idempotency.</Description>
-    <PackageTags>$(CommonPackageTags);mediator;cqrs;pipeline-behavior;clean-architecture;command-handler;deduplication</PackageTags>
+    <PackageTags>$(CommonPackageTags);mediator;cqrs;pipeline-behavior;clean-architecture;command-handler;deduplication;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

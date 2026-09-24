@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 Reflection-heavy serializers break trimming and Native AOT compilation, causing runtime exceptions when deployed as standalone AOT binaries.
 

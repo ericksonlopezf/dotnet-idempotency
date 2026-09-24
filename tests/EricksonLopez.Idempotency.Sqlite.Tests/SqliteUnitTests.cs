@@ -245,7 +245,7 @@ public sealed class SqliteUnitTests
         var tenantId = Guid.NewGuid();
         var key = new IdempotencyKey("sqlite-key-exact-lease");
         var fingerprint = "fp-exact";
-        var exactFutureTime = DateTimeOffset.UtcNow.AddSeconds(10).ToString("O", CultureInfo.InvariantCulture);
+        var futureTime = DateTimeOffset.UtcNow.AddMinutes(5).ToString("O", CultureInfo.InvariantCulture);
 
         using (var cmd = masterConnection.CreateCommand())
         {
@@ -256,16 +256,21 @@ public sealed class SqliteUnitTests
                 )
                 VALUES (
                     'rec-exact', @TenantId, 'orders', @Key, @Fingerprint, 1,
-                    'owner-exact', 1, @ExactTime, @ExactTime, @ExactTime
+                    'owner-exact', 1, @Time, @Time, @Time
                 );
+
+                ALTER TABLE idempotency_records RENAME TO idempotency_records_real;
+                CREATE VIEW idempotency_records AS SELECT * FROM idempotency_records_real;
+
+                CREATE TRIGGER trg_view_insert INSTEAD OF INSERT ON idempotency_records
+                BEGIN
+                    SELECT RAISE(ABORT, 'UNIQUE constraint failed: idempotency_records.tenant_id, idempotency_records.scope, idempotency_records.idempotency_key');
+                END;
                 """;
             cmd.Parameters.AddWithValue("@TenantId", tenantId.ToString());
             cmd.Parameters.AddWithValue("@Key", key.Value);
             cmd.Parameters.AddWithValue("@Fingerprint", fingerprint);
-            cmd.Parameters.AddWithValue("@ExactTime", exactFutureTime);
-            await cmd.ExecuteNonQueryAsync();
-
-            cmd.CommandText = "CREATE TRIGGER trg_no_update_boundary BEFORE UPDATE ON idempotency_records BEGIN SELECT RAISE(ABORT, 'UPDATE should not execute for active lease boundary'); END;";
+            cmd.Parameters.AddWithValue("@Time", futureTime);
             await cmd.ExecuteNonQueryAsync();
         }
 

@@ -39,6 +39,8 @@ public sealed class InMemoryIdempotencyStore : IIdempotencyStore
         TimeSpan retentionDuration,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var recordKey = BuildKey(tenantId, scope, key);
         var now = _timeProvider.GetUtcNow();
         var ownerToken = Guid.NewGuid();
@@ -120,6 +122,8 @@ public sealed class InMemoryIdempotencyStore : IIdempotencyStore
         TimeSpan retentionDuration,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var recordKey = BuildKey(tenantId, scope, key);
         var now = _timeProvider.GetUtcNow();
 
@@ -152,6 +156,8 @@ public sealed class InMemoryIdempotencyStore : IIdempotencyStore
         int concurrencyVersion,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var recordKey = BuildKey(tenantId, scope, key);
 
         if (_records.TryGetValue(recordKey, out var existing))
@@ -176,6 +182,8 @@ public sealed class InMemoryIdempotencyStore : IIdempotencyStore
         int batchSize,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var expiredKeys = _records
             .Where(r => r.Value.RetentionExpiresAtUtc < utcNow)
             .Take(batchSize)

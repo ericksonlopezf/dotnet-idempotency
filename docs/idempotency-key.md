@@ -40,8 +40,9 @@ public readonly record struct IdempotencyKey : IEquatable<IdempotencyKey>, IComp
 2. **Zero-Allocation Comparisons**:
    - Implemented as a readonly record struct for zero heap allocations when passed across asynchronous pipeline methods.
    - Ordinal string comparison prevents culture-dependent collation discrepancies.
-3. **No Silent Normalization**:
-   - Whitespace trimming is rejected at instantiation rather than silently altered. Modifying key bytes could cause two distinct client keys to alias to the same persisted record.
+3. **Leading/Trailing Whitespace Sanitization**:
+   - Leading and trailing whitespace is automatically trimmed upon instantiation to sanitize HTTP header transport variances.
+   - Keys consisting entirely of whitespace are strictly rejected with `IdempotencyKeyEmptyException`.
 4. **Encoding Safety**:
    - UTF-8 and ASCII safe.
 

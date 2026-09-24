@@ -51,7 +51,7 @@ public static class ServiceCollectionExtensions
     /// <example>
     /// <code>
     /// services.AddIdempotencyCore(options => { ... });
-    /// services.AddPostgreSqlIdempotency(connectionString);
+    /// services.AddPostgreSqlIdempotencyStore();
     /// services.AddIdempotencyCleanupService(cleanup =>
     /// {
     ///     cleanup.Interval = TimeSpan.FromHours(6);

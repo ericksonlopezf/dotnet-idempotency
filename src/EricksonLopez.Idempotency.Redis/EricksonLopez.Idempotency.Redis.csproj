@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.Redis</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.Redis</AssemblyName>
     <Description>Redis storage provider for EricksonLopez.Idempotency using StackExchange.Redis with Lua scripts for atomic operations. Note: Redis guarantees are slightly weaker than SQL providers (no fencing tokens); see docs/adr/adr-013-no-idistributedcache-abstraction.md for details.</Description>
-    <PackageTags>$(CommonPackageTags);redis;stackexchange-redis;distributed-cache;lua-scripting;nosql;cache</PackageTags>
+    <PackageTags>$(CommonPackageTags);redis;stackexchange-redis;lua-scripting;distributed-lock;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

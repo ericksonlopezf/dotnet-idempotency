@@ -10,8 +10,8 @@ using StackExchange.Redis;
 namespace EricksonLopez.Idempotency.Redis;
 
 /// <summary>
-/// Provides a Redis-backed implementation of <see cref="IIdempotencyStore"/> using
-/// <see cref="IConnectionMultiplexer"/> with Lua scripts for atomic operations.
+/// Provides a Redis-backed persistence store implementation for <see cref="IIdempotencyStore"/> using
+/// <see cref="IConnectionMultiplexer"/>.
 /// </summary>
 /// <remarks>
 /// <para>

@@ -4,7 +4,7 @@ using System;
 namespace EricksonLopez.Idempotency;
 
 /// <summary>
-/// Provides the default implementation of <see cref="IIdempotencyPolicy"/> based on configured options.
+/// Provides a default evaluation policy for idempotent operation execution based on configured options.
 /// </summary>
 public sealed class DefaultIdempotencyPolicy : IIdempotencyPolicy
 {

@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 Application layers using `EricksonLopez.Mediator` require seamless command interception based on strongly-typed marker interfaces without modifying command handlers.
 

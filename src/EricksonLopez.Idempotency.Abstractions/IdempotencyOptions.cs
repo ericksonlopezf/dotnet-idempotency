@@ -78,4 +78,19 @@ public sealed class IdempotencyOptions
     /// and must return the resolved <see cref="Guid"/> tenant identifier.
     /// </remarks>
     public Func<object, Guid>? TenantIdExtractor { get; set; }
+
+    /// <summary>
+    /// Gets the collection of HTTP response header names that must be excluded from cached idempotency records.
+    /// Headers matching these names (case-insensitive) are not persisted or replayed, preventing sensitive credentials,
+    /// session cookies, or one-time tokens from leaking into database storage.
+    /// </summary>
+    public System.Collections.Generic.HashSet<string> ResponseHeadersBlocklist { get; } = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Set-Cookie",
+        "Set-Cookie2",
+        "Authorization",
+        "WWW-Authenticate",
+        "Proxy-Authenticate",
+        "Proxy-Authorization"
+    };
 }

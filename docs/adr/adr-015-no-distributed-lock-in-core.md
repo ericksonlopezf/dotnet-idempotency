@@ -1,5 +1,11 @@
 # ADR-015: No External Distributed Lock in Core
 
+## Status
+Rejected
+
+## Date
+2026-08-27
+
 **Status**: Rejected (Permanent)  
 **Date**: 2026-08-27  
 **Author**: Erickson López  

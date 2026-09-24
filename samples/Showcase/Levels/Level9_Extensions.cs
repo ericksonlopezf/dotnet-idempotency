@@ -1,6 +1,19 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
 using System.Threading.Tasks;
+using EricksonLopez.Idempotency.AspNetCore;
+using EricksonLopez.Idempotency.MariaDb;
+using EricksonLopez.Idempotency.Mediator;
+using EricksonLopez.Idempotency.MySql;
+using EricksonLopez.Idempotency.Oracle;
+using EricksonLopez.Idempotency.PostgreSql;
+using EricksonLopez.Idempotency.Redis;
+using EricksonLopez.Idempotency.Sqlite;
+using EricksonLopez.Idempotency.SqlServer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EricksonLopez.Idempotency.Showcase.Levels;
 
@@ -17,7 +30,7 @@ public sealed class Level9Extensions : ILevel
     public string Description => "Configuring all relational and Redis persistence providers via DI extension methods. All providers shown as code examples (real connections require external infrastructure).";
 
     /// <inheritdoc/>
-    public Task ExecuteAsync()
+    public async Task ExecuteAsync()
     {
         Console.WriteLine("Available Storage Providers in EricksonLopez.Idempotency:\n");
 
@@ -77,7 +90,7 @@ public sealed class Level9Extensions : ILevel
    services.AddSqliteIdempotencyStore(connectionString);
 
    Strategy: INSERT OR IGNORE INTO idempotency_records (...)
-   Implements: ITransactionalIdempotencyStore
+   Implements: IIdempotencyStore
    Note: Ideal for local development, integration tests, and embedded scenarios.
 ");
 
@@ -151,10 +164,40 @@ public sealed class Level9Extensions : ILevel
    // Does NOT persist across process restarts.
 ");
 
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("[SUCCESS] All persistence adapter configurations demonstrated.");
-        Console.ResetColor();
+        // ─── 10. Live Executable Verification of All Adapters & Pipeline Extensions ─
+        Console.WriteLine("\n10. Live Executable Verification of Storage & Pipeline Registrations:");
+        var testServices = new ServiceCollection();
+        testServices.AddPostgreSqlIdempotencyStore();
+        testServices.AddSqlServerIdempotencyStore("Server=localhost;Database=test;Trusted_Connection=True;");
+        testServices.AddMySqlIdempotencyStore();
+        testServices.AddMariaDbIdempotencyStore();
+        testServices.AddSqliteIdempotencyStore("Data Source=test.db;");
+        testServices.AddOracleIdempotencyStore("Data Source=localhost:1521/XEPDB1;User Id=system;Password=oracle;");
+        testServices.AddRedisIdempotency("localhost:6379");
+        testServices.AddMediatorIdempotency();
+        testServices.AddAspNetCoreIdempotency(opt =>
+        {
+            opt.UseTenantIdExtractor(httpContext => Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        });
+        Console.WriteLine("    -> All 7 storage providers, Mediator, and ASP.NET Core DI extensions registered successfully.");
 
-        return Task.CompletedTask;
+        // ASP.NET Core Pipeline & Minimal API RouteBuilder verification
+        var appBuilder = WebApplication.CreateBuilder();
+        var app = appBuilder.Build();
+        app.UseIdempotency();
+        app.MapPost("/api/orders", () => "OK").WithIdempotency();
+        Console.WriteLine("    -> UseIdempotency and MapPost(...).WithIdempotency() endpoint configured.");
+
+        // IdempotencyMiddleware InvokeAsync execution
+        var middleware = new IdempotencyMiddleware(_ => Task.CompletedTask);
+        var defaultContext = new DefaultHttpContext();
+        var mockStore = new EricksonLopez.Idempotency.Testing.InMemoryIdempotencyStore();
+        var optionsAccessor = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { Enabled = false });
+        await middleware.InvokeAsync(defaultContext, mockStore, optionsAccessor);
+        Console.WriteLine("    -> IdempotencyMiddleware.InvokeAsync executed with pass-through verification.");
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("\n[SUCCESS] All persistence adapter configurations demonstrated.");
+        Console.ResetColor();
     }
 }

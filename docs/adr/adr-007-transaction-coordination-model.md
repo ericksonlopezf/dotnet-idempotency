@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 When business domain changes and idempotency state exist within the same relational database, dual-write anomalies can occur if the business transaction succeeds but the idempotency record update fails.
 

@@ -12,7 +12,8 @@ using Oracle.ManagedDataAccess.Client;
 namespace EricksonLopez.Idempotency.Oracle;
 
 /// <summary>
-/// Provides an Oracle Database persistence store implementation for <see cref="IIdempotencyStore"/> using Dapper and raw SQL.
+/// Provides an Oracle Database persistence store implementation for <see cref="IIdempotencyStore"/> and
+/// <see cref="ITransactionalIdempotencyStore"/>.
 /// </summary>
 public sealed class OracleIdempotencyStore : ITransactionalIdempotencyStore
 {

@@ -5,6 +5,11 @@ namespace EricksonLopez.Idempotency.Exceptions;
 /// <summary>
 /// Represents an exception thrown when an operation discovers its ownership lease has expired and could not be finalized.
 /// </summary>
+/// <remarks>
+/// In the default execution pipeline, <c>IdempotencyEngine</c> logs lease expiration without throwing to avoid masking
+/// domain operation success. Custom stores, distributed locking wrappers, or manual lease coordinators may throw this
+/// exception when strict lease fencing is enforced.
+/// </remarks>
 public sealed class IdempotencyLeaseExpiredException : IdempotencyException
 {
     /// <summary>

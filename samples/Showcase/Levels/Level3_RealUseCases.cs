@@ -145,7 +145,7 @@ public sealed class Level3RealUseCases : ILevel
         var mismatchProblem = new IdempotencyProblemDetails(
             Type: "https://docs.ericksonlopez.com/idempotency/errors/fingerprint-mismatch",
             Title: "Fingerprint Mismatch",
-            Status: 422,
+            Status: 409,
             Detail: "The idempotency key 'PAYMENT-TX-001' was previously used with a different request payload.");
 
         Console.WriteLine($"\n -> Mismatch Status: {mismatchProblem.Status}, Title: {mismatchProblem.Title}");

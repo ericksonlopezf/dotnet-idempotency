@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.Testing</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.Testing</AssemblyName>
     <Description>Testing utilities, in-memory test stores, and mock helpers for EricksonLopez.Idempotency.</Description>
-    <PackageTags>$(CommonPackageTags);testing;test-doubles;in-memory;mocks;unit-testing;integration-testing</PackageTags>
+    <PackageTags>$(CommonPackageTags);testing;unit-testing;integration-testing;in-memory;test-doubles;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

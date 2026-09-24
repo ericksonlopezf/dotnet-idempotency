@@ -19,16 +19,16 @@ ADRs fall into two categories:
 
 | ADR | Title | Status | Date |
 |---|---|---|---|
-| [ADR-001](adr-001-why-idempotency-library-exists.md) | Why the EricksonLopez.Idempotency Framework Exists | Accepted | 2026-08-27 |
-| [ADR-002](adr-002-idempotency-independent-of-resilience.md) | Idempotency is Independent of Resilience | Accepted | 2026-08-27 |
-| [ADR-003](adr-003-idempotency-does-not-replace-concurrency.md) | Idempotency Does Not Replace Concurrency Control | Accepted | 2026-08-27 |
-| [ADR-004](adr-004-lease-ownership-fencing-token-model.md) | Lease Ownership & Fencing Token Model | Accepted | 2026-08-27 |
-| [ADR-005](adr-005-postgresql-dapper-persistence.md) | PostgreSQL + Dapper as Reference Persistence Strategy | Accepted | 2026-08-27 |
-| [ADR-006](adr-006-deterministic-sha256-fingerprint-strategy.md) | Deterministic SHA-256 Fingerprint Strategy | Accepted | 2026-08-27 |
-| [ADR-007](adr-007-transaction-coordination-model.md) | Transaction Coordination Model | Accepted | 2026-08-27 |
-| [ADR-008](adr-008-outbox-integration-flow.md) | Outbox Integration Flow | Accepted | 2026-08-27 |
-| [ADR-009](adr-009-mediator-pipeline-integration.md) | Mediator Pipeline Integration | Accepted | 2026-08-27 |
-| [ADR-010](adr-010-native-aot-source-generators-strategy.md) | Native AOT & Source Generators Strategy | Accepted | 2026-08-27 |
+| [ADR-001](adr-001-why-idempotency-library-exists.md) | Why the EricksonLopez.Idempotency Framework Exists | Accepted | 2026-09-04 |
+| [ADR-002](adr-002-idempotency-independent-of-resilience.md) | Idempotency is Independent of Resilience | Accepted | 2026-09-04 |
+| [ADR-003](adr-003-idempotency-does-not-replace-concurrency.md) | Idempotency Does Not Replace Concurrency Control | Accepted | 2026-09-04 |
+| [ADR-004](adr-004-lease-ownership-fencing-token-model.md) | Lease Ownership & Fencing Token Model | Accepted | 2026-09-04 |
+| [ADR-005](adr-005-postgresql-dapper-persistence.md) | PostgreSQL + Dapper as Reference Persistence Strategy | Accepted | 2026-09-04 |
+| [ADR-006](adr-006-deterministic-sha256-fingerprint-strategy.md) | Deterministic SHA-256 Fingerprint Strategy | Accepted | 2026-09-04 |
+| [ADR-007](adr-007-transaction-coordination-model.md) | Transaction Coordination Model | Accepted | 2026-09-04 |
+| [ADR-008](adr-008-outbox-integration-flow.md) | Outbox Integration Flow | Accepted | 2026-09-04 |
+| [ADR-009](adr-009-mediator-pipeline-integration.md) | Mediator Pipeline Integration | Accepted | 2026-09-04 |
+| [ADR-010](adr-010-native-aot-source-generators-strategy.md) | Native AOT & Source Generators Strategy | Accepted | 2026-09-04 |
 | [ADR-011](adr-011-transactional-store-participation.md) | Transactional Store Participation Design | Accepted | 2026-08-27 |
 | [ADR-012](adr-012-no-newtonsoft-json.md) | No Newtonsoft.Json Support | Rejected (Permanent) | 2026-08-27 |
 | [ADR-013](adr-013-no-idistributedcache-abstraction.md) | No `IDistributedCache` as Core Storage Abstraction | Rejected (Permanent) | 2026-08-27 |
@@ -36,6 +36,7 @@ ADRs fall into two categories:
 | [ADR-015](adr-015-no-distributed-lock-in-core.md) | No External Distributed Lock in Core | Rejected (Permanent) | 2026-08-27 |
 | [ADR-016](adr-016-no-rate-limiting-integration.md) | No Rate Limiting Integration | Rejected (Permanent) | 2026-08-27 |
 | [ADR-017](adr-017-no-fusioncache-in-core.md) | No FusionCache in Core Engine | Rejected for Core / Deferred for Redis | 2026-08-27 |
+| [ADR-018](adr-018-uniform-endpoint-metadata-resolution.md) | Uniform Endpoint Metadata Resolution Across Middleware and Minimal API Filters | Accepted | 2026-09-15 |
 
 ---
 
@@ -161,6 +162,13 @@ Rate limiting and idempotency are distinct concerns. Rate limiting restricts the
 **Status**: Rejected for Core / Deferred for Redis Provider
 
 `FusionCache` is a high-value caching library but introduces a dependency that constrains the core engine. The core engine remains decoupled from specific caching frameworks. Future exploration of a `FusionCache`-backed Redis adapter is deferred.
+
+---
+
+### ADR-018 — Uniform Endpoint Metadata Resolution
+**Status**: Accepted
+
+Establishes uniform resolution of `IdempotentAttribute` metadata across both ASP.NET Core Middleware and Minimal API Endpoint Filters. Ensures endpoint-level `Scope`, `LeaseDurationSeconds`, `RetentionDurationDays`, `Required`, and `Enabled` take precedence over global `IdempotencyOptions`, guaranteeing complete behavioral parity between controllers and Minimal APIs.
 
 ---
 

@@ -130,7 +130,7 @@ public sealed class Level10EnterpriseArchitecture : ILevel
    // idempotency.executions       — actual business handler executions (should be << requests)
    // idempotency.replayed         — cache hits (duplicate responses served from store)
    // idempotency.conflicts        — 409 in-flight race conditions
-   // idempotency.fingerprint_mismatch — 422 security violation attempts
+   // idempotency.fingerprint_mismatch — 409 security violation attempts
    // idempotency.failed           — operations that failed and were marked as Failed
    // idempotency.duration         — end-to-end latency histogram (p50, p95, p99)
    // idempotency.storage_latency  — store interaction latency histogram

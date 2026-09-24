@@ -49,6 +49,7 @@ public sealed class InMemoryIdempotencyStore : IIdempotencyStore
 
         while (true)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (_records.TryGetValue(recordKey, out var existing))
             {
                 // 1. Check fingerprint mismatch
@@ -193,6 +194,7 @@ public sealed class InMemoryIdempotencyStore : IIdempotencyStore
         var count = 0;
         foreach (var k in expiredKeys)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (_records.TryRemove(k, out _))
             {
                 count++;

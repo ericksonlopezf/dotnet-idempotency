@@ -264,14 +264,25 @@ public sealed class OracleUnitTests
     [Fact]
     public async Task TryAcquireCoreAsync_WhenProcessingWithActiveLease_ReturnsInFlightConflict()
     {
-        var existingRow = CreateRow(
-            status: 1,
-            fingerprint: "fp-inflight",
-            leaseExpires: DateTimeOffset.UtcNow.AddMinutes(10));
+        DateTimeOffset capturedNow = default;
 
         using var connection = new TestDbConnection(
-            onExecuteNonQuery: cmd => cmd.CommandText.Contains("INSERT", StringComparison.OrdinalIgnoreCase) ? 0 : 99,
-            onExecuteReader: _ => new TestDbDataReader(new List<Dictionary<string, object?>> { existingRow }));
+            onExecuteNonQuery: cmd =>
+            {
+                if (cmd.CommandText.Contains("INSERT", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (IDataParameter p in cmd.Parameters)
+                    {
+                        if (p.ParameterName == "@Now" || p.ParameterName == "Now")
+                        {
+                            capturedNow = (DateTimeOffset)p.Value!;
+                        }
+                    }
+                    return 0;
+                }
+                return 99;
+            },
+            onExecuteReader: _ => new TestDbDataReader(new List<Dictionary<string, object?>> { CreateRow(status: 1, fingerprint: "fp-inflight", leaseExpires: capturedNow) }));
 
         var tenantId = Guid.NewGuid();
         var key = new IdempotencyKey("oracle-key-inflight");

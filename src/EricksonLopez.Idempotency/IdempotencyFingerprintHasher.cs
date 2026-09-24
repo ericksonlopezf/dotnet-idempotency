@@ -71,10 +71,8 @@ public sealed class IdempotencyFingerprintHasher : IIdempotencyFingerprintGenera
 
     private static void AppendUtf8String(IncrementalHash hash, string value, Span<byte> tempBuffer)
     {
-        var maxBytes = Encoding.UTF8.GetMaxByteCount(value.Length);
-        if (maxBytes <= tempBuffer.Length)
+        if (Encoding.UTF8.TryGetBytes(value, tempBuffer, out var written))
         {
-            var written = Encoding.UTF8.GetBytes(value, tempBuffer);
             hash.AppendData(tempBuffer[..written]);
         }
         else

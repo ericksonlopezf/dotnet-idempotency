@@ -1,5 +1,11 @@
 # ADR-011: Transactional Store Participation Design
 
+## Status
+Accepted
+
+## Date
+2026-08-27
+
 **Status**: Accepted  
 **Date**: 2026-08-27  
 **Author**: Erickson López  
@@ -145,8 +151,10 @@ Add a secondary interface `ITransactionalIdempotencyStore : IIdempotencyStore` f
 1. ✅ Created `ITransactionalIdempotencyStore` interface in `EricksonLopez.Idempotency.Abstractions`.
 2. ✅ `PostgreSqlIdempotencyStore` implements `ITransactionalIdempotencyStore` — transactional overloads use caller-provided `IDbConnection`/`IDbTransaction`.
 3. ✅ `SqlServerIdempotencyStore` implements `ITransactionalIdempotencyStore` — same pattern.
-4. ✅ `InMemoryIdempotencyStore` (Testing) implements `IIdempotencyStore` only — no DB transactions in-memory.
-5. ✅ `docs/transaction-integration.md` contains working code example.
+4. ✅ `MySqlIdempotencyStore` and `MariaDbIdempotencyStore` implement `ITransactionalIdempotencyStore` using `MySqlDataSource`.
+5. ✅ `OracleIdempotencyStore` implements `ITransactionalIdempotencyStore` using ODP.NET Core.
+6. ✅ `InMemoryIdempotencyStore` (Testing) implements `IIdempotencyStore` only — no DB transactions in-memory.
+7. ✅ `docs/transaction-integration.md` contains working code example.
 
 ---
 

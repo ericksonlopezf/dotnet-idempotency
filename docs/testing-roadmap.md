@@ -22,7 +22,7 @@ The `EricksonLopez.Idempotency` ecosystem is organized into the following packag
 4. **`EricksonLopez.Idempotency.Testing`**: Thread-safe concurrent in-memory test store with lease and fencing token simulation (`InMemoryIdempotencyStore`).
 5. **`EricksonLopez.Idempotency.AspNetCore`**: HTTP middleware (`IdempotencyMiddleware`), Minimal API endpoint filter (`IdempotentEndpointFilter`), metadata attribute (`IdempotentAttribute`), DI and configuration extensions (`AddAspNetCoreIdempotency`, `UseIdempotency`).
 6. **`EricksonLopez.Idempotency.Mediator`**: Pipeline behavior for Mediator (`IdempotencyPipelineBehavior<TRequest, TResponse>`), marker contract (`IIdempotentRequest`), DI extensions (`AddIdempotentPipelineBehavior`).
-7. **`EricksonLopez.Idempotency.Redis`**: Distributed Redis store with atomic Lua scripts (`RedisIdempotencyStore`, `RedisIdempotencyOptions`, `AddRedisIdempotencyStore`).
+7. **`EricksonLopez.Idempotency.Redis`**: Distributed Redis store with atomic Lua scripts (`RedisIdempotencyStore`, `RedisIdempotencyOptions`, `AddRedisIdempotency`).
 8. **`EricksonLopez.Idempotency.Sqlite`**: Relational SQLite store with transactional support and Dapper (`SqliteIdempotencyStore`, `SqliteScripts`, `AddSqliteIdempotencyStore`).
 9. **`EricksonLopez.Idempotency.PostgreSql`**: Relational PostgreSQL store with transactional support (`PostgreSqlIdempotencyStore`, `PostgreSqlScripts`, `PostgresRecordDto`, `AddPostgreSqlIdempotencyStore`).
 10. **`EricksonLopez.Idempotency.SqlServer`**: Relational SQL Server store with transactional support (`SqlServerIdempotencyStore`, `SqlServerScripts`, `AddSqlServerIdempotencyStore`).

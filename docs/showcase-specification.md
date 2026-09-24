@@ -20,28 +20,28 @@ Solution: EricksonLopez.Idempotency.slnx
 Platform: .NET 10.0 | C# 13 | Native AOT First | Multi-DB Persistence | OpenTelemetry
 
 Classification Matrix:
-┌──────────────────────────────────────────────┬──────────────────────────────┬────────────┐
-│ Project Name                                 │ Classification               │ Target     │
-├──────────────────────────────────────────────┼──────────────────────────────┼────────────┤
-│ EricksonLopez.Idempotency.Abstractions       │ Core Library (Pure Port/SPI) │ net10.0    │
-│ EricksonLopez.Idempotency                    │ Core Library (Engine)        │ net10.0    │
-│ EricksonLopez.Idempotency.Result             │ Core Library (Result Monad)  │ net10.0    │
-│ EricksonLopez.Idempotency.Testing            │ Core Library (Test Doubles)  │ net10.0    │
-│ EricksonLopez.Idempotency.AspNetCore         │ Infrastructure (Web Adapter) │ net10.0    │
-│ EricksonLopez.Idempotency.Mediator           │ Infrastructure (Pipeline)    │ net10.0    │
-│ EricksonLopez.Idempotency.PostgreSql         │ Infrastructure (Storage SPI) │ net10.0    │
-│ EricksonLopez.Idempotency.SqlServer          │ Infrastructure (Storage SPI) │ net10.0    │
-│ EricksonLopez.Idempotency.MySql              │ Infrastructure (Storage SPI) │ net10.0    │
-│ EricksonLopez.Idempotency.MariaDb            │ Infrastructure (Storage SPI) │ net10.0    │
-│ EricksonLopez.Idempotency.Oracle             │ Infrastructure (Storage SPI) │ net10.0    │
-│ EricksonLopez.Idempotency.Sqlite             │ Infrastructure (Storage SPI) │ net10.0    │
-│ EricksonLopez.Idempotency.Redis              │ Infrastructure (Storage SPI) │ net10.0    │
-│ EricksonLopez.Idempotency.Showcase           │ Showcase & Reference Runtime │ net10.0    │
-│ EricksonLopez.Idempotency.ArchitectureTests  │ Tests (Clean Architecture)   │ net10.0    │
-│ EricksonLopez.Idempotency.AotSmokeTest       │ Tests (Native AOT Smoke)     │ net10.0    │
-│ EricksonLopez.Idempotency.IntegrationTests   │ Tests (Concurrency/Leases)  │ net10.0    │
-│ EricksonLopez.Idempotency.Benchmarks         │ Benchmarks (BenchmarkDotNet) │ net10.0    │
-└──────────────────────────────────────────────┴──────────────────────────────┴────────────┘
+┌──────────────────────────────────────────────┬──────────────────────────────┬────────────────────────┐
+│ Project Name                                 │ Classification               │ Target Framework(s)    │
+├──────────────────────────────────────────────┼──────────────────────────────┼────────────────────────┤
+│ EricksonLopez.Idempotency.Abstractions       │ Core Library (Pure Port/SPI) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency                    │ Core Library (Engine)        │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.Result             │ Core Library (Result Monad)  │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.Testing            │ Core Library (Test Doubles)  │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.AspNetCore         │ Infrastructure (Web Adapter) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.Mediator           │ Infrastructure (Pipeline)    │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.PostgreSql         │ Infrastructure (Storage SPI) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.SqlServer          │ Infrastructure (Storage SPI) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.MySql              │ Infrastructure (Storage SPI) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.MariaDb            │ Infrastructure (Storage SPI) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.Oracle             │ Infrastructure (Storage SPI) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.Sqlite             │ Infrastructure (Storage SPI) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.Redis              │ Infrastructure (Storage SPI) │ net8.0;net9.0;net10.0  │
+│ EricksonLopez.Idempotency.Showcase           │ Showcase & Reference Runtime │ net10.0                │
+│ EricksonLopez.Idempotency.ArchitectureTests  │ Tests (Clean Architecture)   │ net10.0                │
+│ EricksonLopez.Idempotency.AotSmokeTest       │ Tests (Native AOT Smoke)     │ net10.0                │
+│ EricksonLopez.Idempotency.IntegrationTests   │ Tests (Concurrency/Leases)  │ net10.0                │
+│ EricksonLopez.Idempotency.Benchmarks         │ Benchmarks (BenchmarkDotNet) │ net10.0                │
+└──────────────────────────────────────────────┴──────────────────────────────┴────────────────────────┘
 ```
 
 ---
@@ -52,7 +52,7 @@ Classification Matrix:
 |---|---|---|---|---|---|
 | `IdempotencyKey` | `EricksonLopez.Idempotency` | Strongly-typed immutable Value Object for keys (1-128 chars). | None | Basic | Level 1, Level 3, Level 5, Level 7 |
 | `IdempotencyScope` | `EricksonLopez.Idempotency` | Strongly-typed boundary scope for logical operations. | None | Basic | Level 1, Level 7 |
-| `IdempotencyOptions` | `EricksonLopez.Idempotency` | Configuration settings for headers, leases, retention, and buffer limits. | `Microsoft.AspNetCore.Http` | Basic | Level 2 |
+| `IdempotencyOptions` | `EricksonLopez.Idempotency` | Configuration settings for headers, leases, retention, and buffer limits. | None | Basic | Level 2 |
 | `IdempotencyStatus` | `EricksonLopez.Idempotency` | Enum: `Processing` (1), `Completed` (2), `Failed` (3). | None | Basic | Level 0, Level 6 |
 | `IIdempotencyStore` | `EricksonLopez.Idempotency` | Persistence SPI for atomic key acquisition, completion, and TTL cleanup. | Abstractions | Advanced | Level 1, Level 4, Level 6, Level 7, Level 9 |
 | `ITransactionalIdempotencyStore` | `EricksonLopez.Idempotency` | Secondary SPI enabling database transaction participation (`IDbConnection` + `IDbTransaction`). | Abstractions | Advanced | Level 4, Level 9 |
@@ -87,11 +87,11 @@ Classification Matrix:
 | `IdempotencyErrors` | `EricksonLopez.Idempotency.Result` | Functional domain error factories for `EricksonLopez.Result`. | `EricksonLopez.Result` | Basic | Level 4 |
 | `IdempotencyResultExtensions` | `EricksonLopez.Idempotency.Result` | Monadic extension methods converting errors to `Result<T>`. | `EricksonLopez.Result` | Basic | Level 4 |
 | `InMemoryIdempotencyStore` | `EricksonLopez.Idempotency.Testing` | Thread-safe in-memory store for unit and integration testing. | Abstractions | Intermediate | Levels 1-7 |
-| `PostgreSqlIdempotencyStore` | `EricksonLopez.Idempotency.PostgreSql` | PostgreSQL store with `ON CONFLICT` and `ITransactionalIdempotencyStore`. | `Npgsql`, `Dapper` | Advanced | Level 9 |
-| `SqlServerIdempotencyStore` | `EricksonLopez.Idempotency.SqlServer` | SQL Server store with `MERGE (HOLDLOCK)` and `ITransactionalIdempotencyStore`. | `Microsoft.Data.SqlClient`, `Dapper` | Advanced | Level 9 |
-| `MySqlIdempotencyStore` | `EricksonLopez.Idempotency.MySql` | MySQL store using `INSERT IGNORE INTO`. | `MySqlConnector`, `Dapper` | Advanced | Level 9 |
-| `MariaDbIdempotencyStore` | `EricksonLopez.Idempotency.MariaDb` | MariaDB store using `INSERT IGNORE INTO`. | `MySqlConnector`, `Dapper` | Advanced | Level 9 |
-| `OracleIdempotencyStore` | `EricksonLopez.Idempotency.Oracle` | Oracle store using `MERGE INTO`. | `Oracle.ManagedDataAccess.Core`, `Dapper` | Advanced | Level 9 |
+| `PostgreSqlIdempotencyStore` | `EricksonLopez.Idempotency.PostgreSql` | PostgreSQL store with `ON CONFLICT DO NOTHING` and `ITransactionalIdempotencyStore`. | `Npgsql`, `Dapper` | Advanced | Level 9 |
+| `SqlServerIdempotencyStore` | `EricksonLopez.Idempotency.SqlServer` | SQL Server store with `IF NOT EXISTS (UPDLOCK, HOLDLOCK) INSERT` and `ITransactionalIdempotencyStore`. | `Microsoft.Data.SqlClient`, `Dapper` | Advanced | Level 9 |
+| `MySqlIdempotencyStore` | `EricksonLopez.Idempotency.MySql` | MySQL store using `INSERT IGNORE INTO` and `ITransactionalIdempotencyStore`. | `MySqlConnector`, `Dapper` | Advanced | Level 9 |
+| `MariaDbIdempotencyStore` | `EricksonLopez.Idempotency.MariaDb` | MariaDB store using `INSERT IGNORE INTO` and `ITransactionalIdempotencyStore`. | `MySqlConnector`, `Dapper` | Advanced | Level 9 |
+| `OracleIdempotencyStore` | `EricksonLopez.Idempotency.Oracle` | Oracle store using `MERGE INTO ... USING DUAL` and `ITransactionalIdempotencyStore`. | `Oracle.ManagedDataAccess.Core`, `Dapper` | Advanced | Level 9 |
 | `SqliteIdempotencyStore` | `EricksonLopez.Idempotency.Sqlite` | SQLite store using `INSERT OR IGNORE INTO`. | `Microsoft.Data.Sqlite`, `Dapper` | Advanced | Level 9 |
 | `RedisIdempotencyStore` | `EricksonLopez.Idempotency.Redis` | Cloud-native Redis store using atomic Lua scripts. | `StackExchange.Redis` | Advanced | Level 9 |
 | `RedisIdempotencyOptions` | `EricksonLopez.Idempotency.Redis` | Configuration for Redis key prefix and database index. | None | Basic | Level 9 |

@@ -280,17 +280,18 @@ public sealed class InMemoryStoreUnitTests
         var tenantId = Guid.NewGuid();
         var key = new IdempotencyKey("inmem-race-key");
 
-        using var barrier = new Barrier(60);
+        var startGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var tasks = new List<Task<IdempotencyClaimResult>>();
         for (var i = 0; i < 60; i++)
         {
-            tasks.Add(Task.Run(() =>
+            tasks.Add(Task.Run(async () =>
             {
-                barrier.SignalAndWait();
-                return store.TryAcquireAsync(tenantId, "orders", key, "fp-race", TimeSpan.FromMinutes(5), TimeSpan.FromDays(7));
+                await startGate.Task;
+                return await store.TryAcquireAsync(tenantId, "orders", key, "fp-race", TimeSpan.FromMinutes(5), TimeSpan.FromDays(7));
             }));
         }
 
+        startGate.SetResult();
         var results = await Task.WhenAll(tasks);
 
         results.Should().ContainSingle(r => r.Status == ClaimResultStatus.AcquiredNew);
@@ -309,17 +310,18 @@ public sealed class InMemoryStoreUnitTests
         seedClaim.Status.Should().Be(ClaimResultStatus.AcquiredNew);
         await Task.Delay(30); // Expire lease
 
-        using var barrier = new Barrier(60);
+        var startGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var tasks = new List<Task<IdempotencyClaimResult>>();
         for (var i = 0; i < 60; i++)
         {
-            tasks.Add(Task.Run(() =>
+            tasks.Add(Task.Run(async () =>
             {
-                barrier.SignalAndWait();
-                return store.TryAcquireAsync(tenantId, "orders", key, "fp-stale", TimeSpan.FromMinutes(5), TimeSpan.FromDays(7));
+                await startGate.Task;
+                return await store.TryAcquireAsync(tenantId, "orders", key, "fp-stale", TimeSpan.FromMinutes(5), TimeSpan.FromDays(7));
             }));
         }
 
+        startGate.SetResult();
         var results = await Task.WhenAll(tasks);
 
         results.Should().ContainSingle(r => r.Status == ClaimResultStatus.AcquiredStale);
@@ -387,6 +389,27 @@ public sealed class InMemoryStoreUnitTests
         var afterExpiryTime = exactExpiryTime.AddTicks(1);
         var purgedAfter = await store.CleanupExpiredRecordsAsync(afterExpiryTime, 100);
         purgedAfter.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Cancellation_Requested_ThrowsOperationCanceledException_AcrossAllMethods()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var tenantId = Guid.NewGuid();
+        var key = new IdempotencyKey("inmem-cancel-key");
+        var token = new CancellationToken(canceled: true);
+
+        var actAcquire = () => store.TryAcquireAsync(tenantId, "test", key, "fp-1", TimeSpan.FromMinutes(1), TimeSpan.FromDays(1), token);
+        await actAcquire.Should().ThrowAsync<OperationCanceledException>();
+
+        var actComplete = () => store.MarkCompletedAsync(tenantId, "test", key, Guid.NewGuid(), 1, 200, new Dictionary<string, string[]>(), ReadOnlyMemory<byte>.Empty, TimeSpan.FromDays(1), token);
+        await actComplete.Should().ThrowAsync<OperationCanceledException>();
+
+        var actFail = () => store.MarkFailedAsync(tenantId, "test", key, Guid.NewGuid(), 1, token);
+        await actFail.Should().ThrowAsync<OperationCanceledException>();
+
+        var actCleanup = () => store.CleanupExpiredRecordsAsync(DateTimeOffset.UtcNow, 100, token);
+        await actCleanup.Should().ThrowAsync<OperationCanceledException>();
     }
 
     private sealed class TestTimeProvider : TimeProvider

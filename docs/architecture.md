@@ -53,7 +53,8 @@ flowchart TD
     subgraph Persistence["Storage Adapters (Infrastructure Layer)"]
         PG[PostgreSql Provider<br/>Npgsql + Dapper]
         SS[SqlServer Provider<br/>SqlClient + Dapper]
-        MY[MySql / MariaDb Providers<br/>MySqlConnector + Dapper]
+        MY[MySql Provider<br/>MySqlConnector + Dapper]
+        MA[MariaDb Provider<br/>MySqlConnector + Dapper]
         ORA[Oracle Provider<br/>OracleClient + Dapper]
         SQ[Sqlite Provider<br/>Microsoft.Data.Sqlite]
         RD[Redis Provider<br/>StackExchange.Redis + Lua]
@@ -65,10 +66,11 @@ flowchart TD
         SS -.-> TxStorePort
         MY -.-> StorePort
         MY -.-> TxStorePort
+        MA -.-> StorePort
+        MA -.-> TxStorePort
         ORA -.-> StorePort
         ORA -.-> TxStorePort
         SQ -.-> StorePort
-        SQ -.-> TxStorePort
         RD -.-> StorePort
         MEM -.-> StorePort
     end
@@ -87,9 +89,12 @@ flowchart TD
    - Decoupled from persistence engines and presentation frameworks.
 
 3. **Adapters & Providers Layer**:
-   - `EricksonLopez.Idempotency.PostgreSql`: PostgreSQL persistence utilizing Dapper, raw parameterized SQL, `ON CONFLICT`, lease fencing, and `ITransactionalIdempotencyStore` support.
-   - `EricksonLopez.Idempotency.SqlServer`: SQL Server persistence with `MERGE WITH (HOLDLOCK)` and `ITransactionalIdempotencyStore` support.
-   - `EricksonLopez.Idempotency.MySql` / `MariaDb` / `Oracle` / `Sqlite`: Native SQL dialect storage adapters.
+   - `EricksonLopez.Idempotency.PostgreSql`: PostgreSQL persistence utilizing Dapper, raw parameterized SQL, `ON CONFLICT DO NOTHING`, lease fencing, and `ITransactionalIdempotencyStore` support.
+   - `EricksonLopez.Idempotency.SqlServer`: SQL Server persistence with `IF NOT EXISTS ... WITH (UPDLOCK, HOLDLOCK)` / `MERGE WITH (HOLDLOCK)` and `ITransactionalIdempotencyStore` support.
+   - `EricksonLopez.Idempotency.MySql`: MySQL persistence with atomic `INSERT IGNORE INTO` and `ITransactionalIdempotencyStore` support.
+   - `EricksonLopez.Idempotency.MariaDb`: MariaDB persistence with atomic `INSERT IGNORE INTO` and `ITransactionalIdempotencyStore` support.
+   - `EricksonLopez.Idempotency.Oracle`: Oracle Database persistence using `MERGE INTO` and `ITransactionalIdempotencyStore` support.
+   - `EricksonLopez.Idempotency.Sqlite`: SQLite embedded single-node storage adapter using atomic `INSERT OR IGNORE INTO`.
    - `EricksonLopez.Idempotency.Redis`: High-throughput Redis storage provider with atomic Lua scripts for cloud-native workloads.
    - `EricksonLopez.Idempotency.Testing`: Thread-safe in-memory double for deterministic unit and integration tests.
    - `EricksonLopez.Idempotency.AspNetCore`: HTTP pipeline filters (`.WithIdempotency()`), middleware, and `[Idempotent]` attribute for ASP.NET Core.

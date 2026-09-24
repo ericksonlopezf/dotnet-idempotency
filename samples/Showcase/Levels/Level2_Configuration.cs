@@ -32,6 +32,7 @@ public sealed class Level2Configuration : ILevel
 
         services.AddIdempotencyCore(options =>
         {
+            options.Enabled = true;
             options.HeaderName = "X-Idempotency-Key";
             options.DefaultLeaseDuration = TimeSpan.FromSeconds(45);
             options.DefaultRetentionDuration = TimeSpan.FromDays(14);
@@ -39,6 +40,9 @@ public sealed class Level2Configuration : ILevel
             options.RequireIdempotencyKey = true;
             options.StoreResponseBody = true;
             options.CacheOnlySuccessResponses = true;
+
+            // ResponseHeadersBlocklist — prevent sensitive headers from caching
+            options.ResponseHeadersBlocklist.Add("X-Custom-Token");
 
             // TenantIdExtractor (generic object overload — framework-agnostic)
             options.TenantIdExtractor = context =>
@@ -61,6 +65,7 @@ public sealed class Level2Configuration : ILevel
         var optionsInstance = provider.GetRequiredService<IdempotencyOptions>();
 
         Console.WriteLine(" -> Options bound successfully:");
+        Console.WriteLine($"    - Enabled:                    {optionsInstance.Enabled}");
         Console.WriteLine($"    - HeaderName:                '{optionsInstance.HeaderName}'");
         Console.WriteLine($"    - DefaultLeaseDuration:       {optionsInstance.DefaultLeaseDuration.TotalSeconds}s");
         Console.WriteLine($"    - DefaultRetentionDuration:   {optionsInstance.DefaultRetentionDuration.TotalDays} days");
@@ -69,6 +74,7 @@ public sealed class Level2Configuration : ILevel
         Console.WriteLine($"    - StoreResponseBody:          {optionsInstance.StoreResponseBody}");
         Console.WriteLine($"    - CacheOnlySuccessResponses:  {optionsInstance.CacheOnlySuccessResponses}");
         Console.WriteLine($"    - TenantIdExtractor:          {(optionsInstance.TenantIdExtractor is not null ? "Configured (Custom Delegate)" : "Default (null)")}");
+        Console.WriteLine($"    - Blocklisted Headers ({optionsInstance.ResponseHeadersBlocklist.Count}):  {string.Join(", ", optionsInstance.ResponseHeadersBlocklist)}");
 
         // ─── 3. AddAspNetCoreIdempotency ─────────────────────────────────────────
         Console.WriteLine("\nStep 3: AddAspNetCoreIdempotency — ASP.NET Core integration...");
@@ -104,7 +110,7 @@ public sealed class Level2Configuration : ILevel
    //  3. Calls IIdempotencyStore.TryAcquireAsync(...)
    //  4. Returns cached response (HTTP 200/201) without re-executing handler
    //  5. Returns 409 Conflict on in-flight clash
-   //  6. Returns 422 Unprocessable on fingerprint mismatch
+   //  6. Returns 409 Conflict on fingerprint mismatch
 ");
 
         // ─── 5. WithIdempotency — Minimal API endpoint & group ────────────────────

@@ -12,21 +12,27 @@ namespace EricksonLopez.Idempotency.SqlServer;
 
 /// <summary>
 /// Provides a Microsoft SQL Server persistence store implementation for <see cref="IIdempotencyStore"/> and
-/// <see cref="ITransactionalIdempotencyStore"/> using Dapper.
+/// <see cref="ITransactionalIdempotencyStore"/>.
 /// </summary>
 public sealed class SqlServerIdempotencyStore : ITransactionalIdempotencyStore
 {
     private readonly string _connectionString;
 
     private const string InsertCommandSql = """
-        INSERT INTO idempotency_records (
-            id, tenant_id, scope, idempotency_key, fingerprint, status,
-            owner_token, concurrency_version, created_at_utc, lease_expires_at_utc, retention_expires_at_utc
+        IF NOT EXISTS (
+            SELECT 1 FROM idempotency_records WITH (UPDLOCK, HOLDLOCK)
+            WHERE tenant_id = @TenantId AND scope = @Scope AND idempotency_key = @Key
         )
-        VALUES (
-            @Id, @TenantId, @Scope, @Key, @Fingerprint, 1,
-            @OwnerToken, 1, @Now, @LeaseExpiresAt, @RetentionExpiresAt
-        );
+        BEGIN
+            INSERT INTO idempotency_records (
+                id, tenant_id, scope, idempotency_key, fingerprint, status,
+                owner_token, concurrency_version, created_at_utc, lease_expires_at_utc, retention_expires_at_utc
+            )
+            VALUES (
+                @Id, @TenantId, @Scope, @Key, @Fingerprint, 1,
+                @OwnerToken, 1, @Now, @LeaseExpiresAt, @RetentionExpiresAt
+            );
+        END;
         """;
 
     private const string SelectExistingSql = """

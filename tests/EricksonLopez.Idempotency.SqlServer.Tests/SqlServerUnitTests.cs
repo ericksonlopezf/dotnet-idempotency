@@ -199,7 +199,7 @@ public sealed class SqlServerUnitTests
         var existingRow = CreateRow(
             status: 2,
             fingerprint: "fp-completed",
-            statusCode: 200,
+            statusCode: 201,
             headers: headersJson,
             body: bodyBytes,
             completedAt: DateTimeOffset.UtcNow);
@@ -224,7 +224,7 @@ public sealed class SqlServerUnitTests
         result.Status.Should().Be(ClaimResultStatus.CompletedReplay);
         result.IsReplay.Should().BeTrue();
         result.CachedResponse.Should().NotBeNull();
-        result.CachedResponse!.StatusCode.Should().Be(200);
+        result.CachedResponse!.StatusCode.Should().Be(201);
         result.CachedResponse.Headers.Should().ContainKey("X-Trace");
         result.CachedResponse.Body.ToArray().Should().BeEquivalentTo(bodyBytes);
     }
@@ -267,14 +267,24 @@ public sealed class SqlServerUnitTests
     [Fact]
     public async Task TryAcquireCoreAsync_WhenProcessingWithActiveLease_ReturnsInFlightConflict()
     {
-        var existingRow = CreateRow(
-            status: 1,
-            fingerprint: "fp-inflight",
-            leaseExpires: DateTimeOffset.UtcNow.AddMinutes(10));
+        DateTimeOffset capturedNow = default;
 
         using var connection = new TestDbConnection(
-            onExecuteNonQuery: _ => 0,
-            onExecuteReader: _ => new TestDbDataReader(new List<Dictionary<string, object?>> { existingRow }),
+            onExecuteNonQuery: cmd =>
+            {
+                if (cmd.CommandText.Contains("INSERT", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (IDataParameter p in cmd.Parameters)
+                    {
+                        if (p.ParameterName == "@Now" || p.ParameterName == "Now")
+                        {
+                            capturedNow = (DateTimeOffset)p.Value!;
+                        }
+                    }
+                }
+                return 0;
+            },
+            onExecuteReader: _ => new TestDbDataReader(new List<Dictionary<string, object?>> { CreateRow(status: 1, fingerprint: "fp-inflight", leaseExpires: capturedNow) }),
             onExecuteScalar: _ => 99); // If short-circuit fails, scalar 99 produces AcquiredStale and fails test
 
         var tenantId = Guid.NewGuid();

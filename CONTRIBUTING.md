@@ -99,7 +99,7 @@ Execute BenchmarkDotNet performance tests:
 dotnet run --project benchmarks/EricksonLopez.Idempotency.Benchmarks/EricksonLopez.Idempotency.Benchmarks.csproj --configuration Release
 ```
 
-> **Benchmark policy**: PRs that modify `src/**` or `benchmarks/**` are subject to the automated benchmark regression gate (`.github/workflows/benchmark-regression-gate.yml`), which compares performance against the stored baseline in `benchmarks/results/`. Regressions exceeding 10% cause the build to fail.
+> **Benchmark policy**: PRs that modify `src/**` or `benchmarks/**` are subject to the automated benchmark regression gate (`.github/workflows/benchmark-regression-gate.yml`), which compares performance against the stored baseline in `benchmarks/results/baseline.json`. Latency regressions exceeding 5% or heap allocations on zero-alloc paths cause the build to fail.
 
 ---
 
@@ -153,14 +153,17 @@ pwsh -File scripts/verify-compliance.ps1
    - `perf(hasher): optimize stackalloc span allocation`
    - `test(mediator): add cancellation token pipeline tests`
 3. **Pull Request Checklist**:
-   - [ ] All 31 solution projects compile cleanly with 0 warnings.
-   - [ ] Unit and architecture tests pass (`dotnet test EricksonLopez.Idempotency.slnx`).
+   - [ ] Verified against `.github/PULL_REQUEST_TEMPLATE.md`.
+   - [ ] All 31 solution projects compile cleanly with 0 warnings (`dotnet build EricksonLopez.Idempotency.slnx -c Release`).
+   - [ ] Unit and architecture tests pass (`dotnet test EricksonLopez.Idempotency.slnx -c Release`).
    - [ ] Native AOT compatibility verified (AOT smoke test passes).
-   - [ ] Repository compliance passes (`scripts/verify-compliance.ps1`).
+   - [ ] Repository compliance passes (`pwsh -File scripts/verify-compliance.ps1`).
+   - [ ] Link integrity passes (`pwsh -File scripts/verify-links.ps1`).
+   - [ ] Naming conventions pass (`pwsh -File scripts/verify-naming.ps1`).
    - [ ] XML documentation added/updated for all public API changes.
    - [ ] Showcase updated if public API surface changed.
    - [ ] `CHANGELOG.md` updated under `[Unreleased]` if applicable.
-   - [ ] Benchmark regression gate passes (if `src/**` or `benchmarks/**` were modified).
+   - [ ] Benchmark regression gate passes (mean latency regression ≤ 5% vs baseline, 0 B heap alloc).
 
 ---
 

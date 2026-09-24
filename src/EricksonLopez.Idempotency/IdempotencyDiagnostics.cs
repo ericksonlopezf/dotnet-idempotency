@@ -18,7 +18,7 @@ public static class IdempotencyDiagnostics
     /// <summary>
     /// Gets the version string of the instrumentation library.
     /// </summary>
-    public const string ServiceVersion = "1.0.0";
+    public const string ServiceVersion = "2.0.0";
 
     /// <summary>
     /// Gets the <see cref="System.Diagnostics.ActivitySource"/> used for distributed tracing of idempotency operations.

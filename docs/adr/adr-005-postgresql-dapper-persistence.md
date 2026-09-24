@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 High-throughput idempotency stores require maximum execution plan predictability, atomic concurrency statements (`ON CONFLICT`, `RETURNING`), and zero runtime reflection overhead for Native AOT.
 

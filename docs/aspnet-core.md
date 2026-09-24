@@ -112,3 +112,29 @@ but reduces repetition when all endpoints in a group share the same idempotency 
 > [!NOTE]
 > The group-level `.WithIdempotency()` respects per-endpoint `[Idempotent(Enabled = false)]` attributes,
 > which allows individual endpoints to opt out of group-level enforcement.
+
+---
+
+## 6. Security: Response Header Sanitization (`ResponseHeadersBlocklist`)
+
+When caching HTTP responses for replay, caching sensitive headers such as session cookies, bearer tokens, or authentication challenges creates critical security vulnerabilities (credential leakage, session hijacking, or cross-tenant exposure).
+
+`IdempotencyOptions.ResponseHeadersBlocklist` provides a configurable, case-insensitive set of header names that are automatically stripped before response headers are persisted to the idempotency store.
+
+By default, the blocklist contains:
+- `Set-Cookie`
+- `Set-Cookie2`
+- `Authorization`
+- `Proxy-Authenticate`
+- `Proxy-Authorization`
+- `WWW-Authenticate`
+
+You can extend the blocklist with custom application headers:
+
+```csharp
+builder.Services.AddAspNetCoreIdempotency(options =>
+{
+    options.ResponseHeadersBlocklist.Add("X-Custom-Session-Token");
+    options.ResponseHeadersBlocklist.Add("X-Api-Key");
+});
+```

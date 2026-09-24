@@ -132,7 +132,7 @@ public sealed class CoreComponentsTests
     public void OpenTelemetryDiagnostics_RecordAllInstruments_AndValidateWithMeterListener()
     {
         IdempotencyDiagnostics.ServiceName.Should().Be("EricksonLopez.Idempotency");
-        IdempotencyDiagnostics.ServiceVersion.Should().Be("1.0.0");
+        IdempotencyDiagnostics.ServiceVersion.Should().Be("2.0.0");
         IdempotencyDiagnostics.ActivitySource.Should().NotBeNull();
         IdempotencyDiagnostics.Meter.Should().NotBeNull();
 
@@ -229,5 +229,98 @@ public sealed class CoreComponentsTests
         recordedMeasurements.Should().Contain(m => m.InstrumentName == "idempotency.storage_latency" && (double)m.Value == 3.2 && m.Tag.Key == "operation" && (string)m.Tag.Value! == "TryAcquire");
     }
 
+    [Fact]
+    public void SystemTextJsonSerializer_ResultTypeSerialization_HandlesAllResultVariations()
+    {
+        var serializer = new SystemTextJsonIdempotencySerializer();
+
+        // 1. Success result: Value serialized, Error excluded
+        var success = new TestSuccessResult { Value = "ValSuccess", Error = "IgnoredErr" };
+        var successJson = Encoding.UTF8.GetString(serializer.Serialize(success));
+        successJson.Should().Contain("\"Value\":\"ValSuccess\"");
+        successJson.Should().NotContain("Error");
+
+        // 2. Failure result: Error serialized, Value excluded
+        var failure = new TestFailureResult { Value = "IgnoredVal", Error = "ValError" };
+        var failureJson = Encoding.UTF8.GetString(serializer.Serialize(failure));
+        failureJson.Should().Contain("\"Error\":\"ValError\"");
+        failureJson.Should().NotContain("Value");
+
+        // 3. Partial result: Only IsSuccess present -> modifier does NOT apply, both serialized
+        var onlySuccess = new TestOnlySuccessResult { Value = "V1", Error = "E1" };
+        var onlySuccessJson = Encoding.UTF8.GetString(serializer.Serialize(onlySuccess));
+        onlySuccessJson.Should().Contain("\"Value\":\"V1\"").And.Contain("\"Error\":\"E1\"");
+
+        // 4. Partial result: Only IsFailure present -> modifier does NOT apply, both serialized
+        var onlyFailure = new TestOnlyFailureResult { Value = "V2", Error = "E2" };
+        var onlyFailureJson = Encoding.UTF8.GetString(serializer.Serialize(onlyFailure));
+        onlyFailureJson.Should().Contain("\"Value\":\"V2\"").And.Contain("\"Error\":\"E2\"");
+
+        // 5. Neither result (IsSuccess=false, IsFailure=false) -> neither serialized
+        var neither = new TestNeitherResult { Value = "V3", Error = "E3" };
+        var neitherJson = Encoding.UTF8.GetString(serializer.Serialize(neither));
+        neitherJson.Should().NotContain("Value").And.NotContain("Error");
+
+        // 6. Both result (IsSuccess=true, IsFailure=true) -> getters return null
+        var both = new TestBothResult { Value = "V4", Error = "E4" };
+        var bothJson = Encoding.UTF8.GetString(serializer.Serialize(both));
+        bothJson.Should().NotContain("\"Value\":\"V4\"").And.NotContain("\"Error\":\"E4\"");
+    }
+
+    [Fact]
+    public void FingerprintHasher_LargePayload_CoversHeapFallback()
+    {
+        var largeString = new string('A', 500);
+        var hash = IdempotencyFingerprintHasher.Compute(largeString, "scope", "tenant", "subject", [1, 2, 3]);
+        hash.Should().NotBeNullOrWhiteSpace();
+        hash.Length.Should().Be(64);
+    }
+
     public sealed record TestPayload(string Sku, int Quantity);
+
+    public sealed class TestSuccessResult
+    {
+        public bool IsSuccess { get; set; } = true;
+        public bool IsFailure { get; set; }
+        public string? Value { get; set; }
+        public string? Error { get; set; }
+    }
+
+    public sealed class TestFailureResult
+    {
+        public bool IsSuccess { get; set; }
+        public bool IsFailure { get; set; } = true;
+        public string? Value { get; set; }
+        public string? Error { get; set; }
+    }
+
+    public sealed class TestOnlySuccessResult
+    {
+        public bool IsSuccess { get; set; } = true;
+        public string? Value { get; set; }
+        public string? Error { get; set; }
+    }
+
+    public sealed class TestOnlyFailureResult
+    {
+        public bool IsFailure { get; set; } = true;
+        public string? Value { get; set; }
+        public string? Error { get; set; }
+    }
+
+    public sealed class TestNeitherResult
+    {
+        public bool IsSuccess { get; set; }
+        public bool IsFailure { get; set; }
+        public string? Value { get; set; }
+        public string? Error { get; set; }
+    }
+
+    public sealed class TestBothResult
+    {
+        public bool IsSuccess { get; set; } = true;
+        public bool IsFailure { get; set; } = true;
+        public string? Value { get; set; }
+        public string? Error { get; set; }
+    }
 }

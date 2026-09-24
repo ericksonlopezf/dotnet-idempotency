@@ -12,7 +12,7 @@ using Microsoft.Data.Sqlite;
 namespace EricksonLopez.Idempotency.Sqlite;
 
 /// <summary>
-/// Provides an SQLite persistence store implementation for <see cref="IIdempotencyStore"/> using Dapper and Microsoft.Data.Sqlite.
+/// Provides an SQLite persistence store implementation for <see cref="IIdempotencyStore"/>.
 /// </summary>
 public sealed class SqliteIdempotencyStore : IIdempotencyStore
 {

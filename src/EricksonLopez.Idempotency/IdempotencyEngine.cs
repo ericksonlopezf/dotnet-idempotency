@@ -57,7 +57,18 @@ public sealed partial class IdempotencyEngine
     /// A task representing the asynchronous operation. The task result contains the freshly computed
     /// result if ownership was acquired, or the deserialized cached value if the operation was already completed.
     /// </returns>
+    /// <remarks>
+    /// <para>
+    /// If deserialization of a cached response produces a <see langword="null"/> value (e.g., due to type
+    /// incompatibility or data corruption), <see langword="null"/> is returned as the result.
+    /// </para>
+    /// <para>
+    /// Exceptions thrown by the <paramref name="operation"/> delegate are propagated to the caller
+    /// after the engine attempts to mark the idempotency record as failed via <c>MarkFailedAsync</c>.
+    /// </para>
+    /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="operation"/> is <see langword="null"/></exception>
+    /// <exception cref="OperationCanceledException">The <paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="IdempotencyFingerprintMismatchException">The key was previously used with a different request fingerprint</exception>
     /// <exception cref="IdempotencyConflictException">An identical operation is currently in-flight and executing</exception>
     public async Task<TResult> ExecuteAsync<TResult>(

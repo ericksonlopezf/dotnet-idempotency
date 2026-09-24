@@ -30,7 +30,7 @@ Without strict atomicity, all threads might check the database, find no complete
 
 ### Guarantee
 Exactly **one thread** acquires the lease with status `AcquiredNew`.  
-All remaining threads receive `ClaimResultStatus.InFlightConflict` and HTTP 409 Conflict with `Retry-After: 1`.
+All remaining threads receive `ClaimResultStatus.InFlightConflict` and HTTP 409 Conflict with `Retry-After: 2`.
 
 ---
 

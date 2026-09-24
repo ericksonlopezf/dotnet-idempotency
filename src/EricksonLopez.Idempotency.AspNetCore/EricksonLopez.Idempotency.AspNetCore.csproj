@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.AspNetCore</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.AspNetCore</AssemblyName>
     <Description>ASP.NET Core integration, endpoint filters, and middleware for EricksonLopez.Idempotency.</Description>
-    <PackageTags>$(CommonPackageTags);aspnetcore;minimal-apis;middleware;endpoint-filter;webapi;http;rest;problem-details</PackageTags>
+    <PackageTags>$(CommonPackageTags);aspnetcore;minimal-apis;middleware;endpoint-filter;webapi;http;problem-details;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

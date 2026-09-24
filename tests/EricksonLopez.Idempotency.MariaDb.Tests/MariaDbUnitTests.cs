@@ -54,9 +54,36 @@ public sealed class MariaDbUnitTests
 
         var provider = services.BuildServiceProvider();
         var store = provider.GetService<IIdempotencyStore>();
+        var txStore = provider.GetService<ITransactionalIdempotencyStore>();
 
         store.Should().NotBeNull();
         store.Should().BeOfType<MariaDbIdempotencyStore>();
+        txStore.Should().NotBeNull();
+        txStore.Should().BeSameAs(store);
+    }
+
+    [Fact]
+    public async Task TransactionalOverloads_DelegateToProvidedConnectionAndTransaction()
+    {
+        using var connection = new TestDbConnection(onExecuteNonQuery: _ => 1);
+        using var transaction = connection.BeginTransaction();
+        var dataSource = new MySqlDataSource(DummyConnectionString);
+        ITransactionalIdempotencyStore store = new MariaDbIdempotencyStore(dataSource);
+
+        var tenantId = Guid.NewGuid();
+        var key = new IdempotencyKey("mariadb-tx-key");
+        var ownerToken = Guid.NewGuid();
+
+        var completed = await store.MarkCompletedAsync(
+            tenantId, "scope", key, ownerToken, 1, 200,
+            new Dictionary<string, string[]>(), ReadOnlyMemory<byte>.Empty, TimeSpan.FromDays(1),
+            connection, transaction);
+        completed.Should().BeTrue();
+
+        var failed = await store.MarkFailedAsync(
+            tenantId, "scope", key, ownerToken, 1,
+            connection, transaction);
+        failed.Should().BeTrue();
     }
 
     [Fact]
@@ -235,14 +262,25 @@ public sealed class MariaDbUnitTests
     [Fact]
     public async Task TryAcquireCoreAsync_WhenProcessingWithActiveLease_ReturnsInFlightConflict()
     {
-        var existingRow = CreateRow(
-            status: 1,
-            fingerprint: "fp-inflight",
-            leaseExpires: DateTime.UtcNow.AddMinutes(10));
+        DateTime capturedNow = default;
 
         using var connection = new TestDbConnection(
-            onExecuteNonQuery: cmd => cmd.CommandText.Contains("INSERT", StringComparison.OrdinalIgnoreCase) ? 0 : 99,
-            onExecuteReader: _ => new TestDbDataReader(new List<Dictionary<string, object?>> { existingRow }));
+            onExecuteNonQuery: cmd =>
+            {
+                if (cmd.CommandText.Contains("INSERT", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (IDataParameter p in cmd.Parameters)
+                    {
+                        if (p.ParameterName == "@Now" || p.ParameterName == "Now")
+                        {
+                            capturedNow = (DateTime)p.Value!;
+                        }
+                    }
+                    return 0;
+                }
+                return 99;
+            },
+            onExecuteReader: _ => new TestDbDataReader(new List<Dictionary<string, object?>> { CreateRow(status: 1, fingerprint: "fp-inflight", leaseExpires: capturedNow) }));
 
         var tenantId = Guid.NewGuid();
         var key = new IdempotencyKey("mariadb-key-inflight");

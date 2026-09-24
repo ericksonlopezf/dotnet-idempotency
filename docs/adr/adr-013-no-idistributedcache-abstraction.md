@@ -1,5 +1,11 @@
 # ADR-013: No IDistributedCache as Core Storage Abstraction
 
+## Status
+Rejected
+
+## Date
+2026-08-27
+
 **Status**: Rejected (Permanent)  
 **Date**: 2026-08-27  
 **Author**: Erickson López  

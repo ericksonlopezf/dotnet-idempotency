@@ -1,11 +1,11 @@
 # EricksonLopez.Idempotency
 
-High-performance, Native AOT-first architectural idempotency engine, lease fencing, deterministic SHA-256 fingerprinting, and distributed consistency ecosystem for modern .NET.
+High-performance, Native AOT-ready idempotency and request deduplication engine for modern .NET (8/9/10), ASP.NET Core Minimal APIs, CQRS Mediator, and distributed systems.
 
 [![CI](https://img.shields.io/github/actions/workflow/status/ericksonlopezf/dotnet-idempotency/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/ericksonlopezf/dotnet-idempotency/actions)
 [![Coverage](https://img.shields.io/codecov/c/github/ericksonlopezf/dotnet-idempotency?style=for-the-badge&logo=codecov&logoColor=white)](https://codecov.io/gh/ericksonlopezf/dotnet-idempotency)
 [![Quality Gate](https://img.shields.io/sonar/quality_gate/ericksonlopezf_dotnet-idempotency?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarcloud&logoColor=white)](https://sonarcloud.io/summary/new_code?id=ericksonlopezf_dotnet-idempotency)
-[![Mutation Score](https://img.shields.io/badge/Mutation_Score-99%25-brightgreen?style=for-the-badge&logo=stryker&logoColor=white)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/build-ci-cd.md)
+[![Mutation Score](https://img.shields.io/badge/Mutation_Score-%E2%89%A599%25-brightgreen?style=for-the-badge&logo=stryker&logoColor=white)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/build-ci-cd.md)
 [![NuGet](https://img.shields.io/nuget/v/EricksonLopez.Idempotency?style=for-the-badge&logo=nuget&logoColor=white&color=512BD4)](https://www.nuget.org/packages/EricksonLopez.Idempotency)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/EricksonLopez.Idempotency?style=for-the-badge&logo=nuget&logoColor=white&color=004880)](https://www.nuget.org/packages/EricksonLopez.Idempotency)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/LICENSE)
@@ -46,13 +46,14 @@ High-performance, Native AOT-first architectural idempotency engine, lease fenci
   - [Transactional Store Participation](#transactional-store-participation)
   - [Native AOT Source-Generated Serialization](#native-aot-source-generated-serialization)
   - [Automated Background Retention Cleanup](#automated-background-retention-cleanup)
+  - [Trimming & Native AOT Roslyn Analyzers](#trimming--native-aot-roslyn-analyzers)
 - [Testing & Quality](#-testing--quality)
   - [Unit Testing with InMemoryIdempotencyStore & FakeTimeProvider](#unit-testing-with-inmemoryidempotencystore--faketimeprovider)
   - [Test Isolation via InMemoryIdempotencyStore.Clear()](#test-isolation-via-inmemoryidempotencystoreclear)
   - [High-Concurrency Multithreaded Integration Verification](#high-concurrency-multithreaded-integration-verification)
   - [Quality Engineering & Mutation Testing](#quality-engineering--mutation-testing)
 - [Performance Benchmarks](#-performance-benchmarks)
-  - [Benchmark Results](#benchmark-results)
+  - [Primary Operations Benchmark](#primary-operations-benchmark)
   - [High-Throughput Optimization Directives](#high-throughput-optimization-directives)
 - [Compatibility & Technical Matrix](#-compatibility--technical-matrix)
   - [Target Frameworks & Native AOT Support](#target-frameworks--native-aot-support)
@@ -100,13 +101,13 @@ Idempotency   ≠   Concurrency   ≠   Transactions   ≠   Outbox   ≠   Resi
 
 ## ⚡ Key Features
 
-- 🧱 **Zero-Allocation Domain Value Objects**: `IdempotencyKey` and `IdempotencyScope` are immutable `readonly record struct` types validating bounds (1–128 characters) without heap overhead.
-- 🔒 **Deterministic SHA-256 Fingerprinting**: Zero-allocation canonical request hasher (`IdempotencyFingerprintHasher`) operating on stack-allocated spans to detect payload tampering.
+- 🧱 **Zero-Allocation Domain Value Objects**: `IdempotencyKey` (1–128 characters) and `IdempotencyScope` (1–64 characters) are immutable `readonly record struct` types validating bounds without heap overhead.
+- 🔒 **Deterministic SHA-256 Fingerprinting**: Low-allocation canonical request hasher (`IdempotencyFingerprintHasher`) operating on stack-allocated spans for inputs ≤256 UTF-8 bytes, with automatic heap fallback for larger payloads, to detect payload tampering.
 - ⏱️ **Lease Ownership & Fencing Tokens**: Automatic recovery of crashed or stalled workers through expiring leases and monotonically increasing concurrency version counters.
 - ⚡ **Multi-Database Atomic Dialects**: Dedicated storage adapters for PostgreSQL (`ON CONFLICT`), SQL Server (`MERGE WITH (HOLDLOCK)`), MySQL (`INSERT IGNORE`), MariaDB, Oracle (`MERGE INTO`), SQLite (`INSERT OR IGNORE`), and Redis (Atomic Lua scripts).
 - 🔄 **Response Replay Engine**: Caches HTTP status codes, response headers, and serialized payloads, automatically returning cached responses with the `X-Idempotency-Replayed: true` header.
 - 🏢 **Native Multi-Tenancy Isolation**: Strong three-tier composite partitioning `(TenantId, Scope, IdempotencyKey)` preventing cross-tenant key collisions or leakage.
-- 🚀 **100% Native AOT & Trimming Compliant**: Zero runtime reflection; fully source-generated JSON serialization context (`IdempotencyJsonContext`) compatible with .NET 8, 9, and 10 Native AOT.
+- 🚀 **Native AOT & Trimming Compliant**: Zero runtime reflection; fully source-generated JSON serialization context (`IdempotencyJsonContext`) compatible with .NET 8, 9, and 10 Native AOT across all providers (Oracle excluded — see [Compatibility Matrix](#-compatibility--technical-matrix)).
 - 📊 **Turnkey OpenTelemetry Observability**: Pre-instrumented `ActivitySource` ("EricksonLopez.Idempotency") and `Meter` ("EricksonLopez.Idempotency") emitting real-time counters, durations, and storage latencies.
 - 🧹 **Automated Background Retention Worker**: Configurable background service (`IdempotencyCleanupBackgroundService`) performing periodic batch pruning of expired records.
 
@@ -159,7 +160,7 @@ The repository provides an executable interactive showcase project ([`samples/Sh
 ### 📖 Technical Reference & Architecture Guides
 
 - [**Architecture & Invariants**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/architecture.md) — Comprehensive architectural blueprint, component interactions, and layer separation invariants.
-- [**Architectural Decision Records (ADRs)**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/adr/adr-index.md) — 17 ADRs documenting design rationale, storage choices, and systematic rejections (no Newtonsoft, no IDistributedCache, no downlevel frameworks).
+- [**Architectural Decision Records (ADRs)**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/adr/adr-index.md) — 18 ADRs documenting design rationale, storage choices, and systematic rejections (no Newtonsoft, no IDistributedCache, no downlevel frameworks).
 - [**Showcase Specification & Technical Audit**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/showcase-specification.md) — Public API inventory, showcase audit, and verification metrics.
 - [**Formal State Machine & Lifecycle**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/state-machine.md) — State transition invariants (`Processing`, `Completed`, `Failed`) and CAS rules.
 - [**Deterministic SHA-256 Fingerprinting**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/fingerprinting.md) — Canonical hashing strategy, span-based hashing, and payload validation.
@@ -171,6 +172,8 @@ The repository provides an executable interactive showcase project ([`samples/Sh
 - [**Testing Strategy & Test Suites**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/testing.md) — Test pyramid, `InMemoryIdempotencyStore`, FakeTimeProvider, and AOT smoke tests.
 - [**Native AOT Compatibility Guide**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/aot.md) — Trimming analyzers, Source Generation, and zero-reflection guidelines.
 - [**Build, CI/CD & Quality Engineering**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/build-ci-cd.md) — GitHub Actions pipelines, quality gates, and Stryker mutation testing.
+- [**Public API Inventory**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/api-inventory.md) — Exhaustive public API surface, contracts, records, exceptions, and extension methods.
+- [**Master Feature & Storage Matrix**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/master-feature-matrix.md) — Multi-database storage engine capabilities, distributed locking primitives, and Native AOT support.
 - [**Production Cookbook & Recipes**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/cookbook.md) — 9 copy-paste production-ready integration recipes.
 
 ---
@@ -421,7 +424,7 @@ string fingerprint = IdempotencyFingerprintHasher.Compute(
     scope: "/api/v1/payments",
     tenantId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     authenticatedSubject: "auth0|user_12345",
-    payload: payloadBytes);
+    payloadBytes: payloadBytes);
 
 // Output: 64-character uppercase hexadecimal digest
 Console.WriteLine($"Computed Fingerprint: {fingerprint}");
@@ -592,7 +595,7 @@ builder.Services.AddAspNetCoreIdempotency(options =>
     options.DefaultRetentionDuration = TimeSpan.FromDays(14);
 
     // Maximum request body buffer size in bytes (default: 1 MB)
-    options.MaxRequestBodySize = 1024 * 1024;
+    options.MaxRequestBodySizeBytes = 1024 * 1024;
 
     // Cache only successful 2xx responses (recommended)
     options.CacheOnlySuccessResponses = true;
@@ -632,18 +635,32 @@ Storage providers supporting relational transactions implement `ITransactionalId
 ```csharp
 public interface ITransactionalIdempotencyStore : IIdempotencyStore
 {
-    ValueTask<IdempotencyClaimResult> TryAcquireAsync(
-        Guid tenantId, string scope, IdempotencyKey key, string fingerprint,
-        TimeSpan leaseDuration, TimeSpan retentionDuration,
-        IDbConnection? connection, IDbTransaction? transaction,
+    // Atomically marks a completed operation within the provided transaction.
+    // Returns true if the record was updated; false on owner/fencing mismatch.
+    Task<bool> MarkCompletedAsync(
+        Guid tenantId,
+        string scope,
+        IdempotencyKey key,
+        Guid ownerToken,
+        int concurrencyVersion,
+        int statusCode,
+        IReadOnlyDictionary<string, string[]> headers,
+        ReadOnlyMemory<byte> responseBody,
+        TimeSpan retentionDuration,
+        IDbConnection connection,       // NON-NULLABLE — caller must provide an open connection
+        IDbTransaction? transaction,    // NULLABLE — optional; participates in transaction if provided
         CancellationToken cancellationToken = default);
 
-    ValueTask MarkCompletedAsync(
-        Guid tenantId, string scope, IdempotencyKey key,
-        Guid ownerToken, int concurrencyVersion,
-        int statusCode, IReadOnlyDictionary<string, string[]> headers,
-        ReadOnlyMemory<byte> responseBody, TimeSpan retentionDuration,
-        IDbConnection? connection, IDbTransaction? transaction,
+    // Atomically marks a failed operation within the provided transaction.
+    // Returns true if the record was updated; false on owner/fencing mismatch.
+    Task<bool> MarkFailedAsync(
+        Guid tenantId,
+        string scope,
+        IdempotencyKey key,
+        Guid ownerToken,
+        int concurrencyVersion,
+        IDbConnection connection,       // NON-NULLABLE — caller must provide an open connection
+        IDbTransaction? transaction,    // NULLABLE — optional; participates in transaction if provided
         CancellationToken cancellationToken = default);
 }
 ```
@@ -672,6 +689,17 @@ builder.Services.AddIdempotencyCleanupService(options =>
     options.BatchSize = 1000;
 });
 ```
+
+### Trimming & Native AOT Roslyn Analyzers
+
+All packages in the ecosystem enforce compile-time trimming and Native AOT safety via .NET SDK Roslyn analyzers (`EnableTrimAnalyzer=true` and `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`):
+
+| Diagnostic ID | Severity | Category | Description | Mitigation / Remedy |
+|---|:---:|---|---|---|
+| **`IL2026`** | Error | Trimming | Members attributed with `[RequiresUnreferencedCode]` called in trim-incompatible code | Suppressed or replaced with reflection-free source-generated alternatives |
+| **`IL2091`** | Error | Trimming | Target generic parameter has `[DynamicallyAccessedMembers]` mismatch | Enforce static type parameters or register type with `JsonSerializerContext` |
+| **`IL3050`** | Error | AOT | Members attributed with `[RequiresDynamicCode]` called in AOT-published apps | Use `SystemTextJsonIdempotencySerializer` and source-generated context |
+| **`CS1591`** | Error | Documentation | Missing XML documentation comment on visible type or member | 100% public API XML documentation enforced across all packages |
 
 ---
 
@@ -764,7 +792,7 @@ All benchmarks are compiled with .NET 10.0 and BenchmarkDotNet v0.15.8.
 
 > **Environment:** .NET 10.0.10, X64 RyuJIT AVX2 / AVX-512, BenchmarkDotNet v0.15.8
 
-### Benchmark Results
+### Primary Operations Benchmark
 
 | Operation | Mean | Error | StdDev | Gen0 | Gen1 | Allocated |
 |---|---:|---:|---:|---:|---:|---:|
@@ -772,6 +800,8 @@ All benchmarks are compiled with .NET 10.0 and BenchmarkDotNet v0.15.8.
 | **In-Memory Store Atomic Claim (New Key)** | **89.5 ns** | 0.81 ns | 0.76 ns | 0.0095 | - | **160 B** |
 | **In-Memory Store Cached Replay** | **38.2 ns** | 0.35 ns | 0.32 ns | - | - | **0 B** |
 | **PostgreSQL Atomic Claim (via Dapper)** | **1.12 ms** | 0.04 ms | 0.03 ms | 0.0610 | - | **1.2 KB** |
+
+> ⚠️ **Benchmark scope**: All rows above measure `InMemoryIdempotencyStore` operations in isolation. The "Cached Replay" row (0 B) reflects `TryAcquireAsync` returning a cached hit without any serializer invocation. End-to-end `IdempotencyEngine.ExecuteAsync` benchmarks including deserialization are tracked separately in [`docs/performance.md`](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/performance.md).
 
 ### High-Throughput Optimization Directives
 
@@ -800,7 +830,7 @@ All benchmarks are compiled with .NET 10.0 and BenchmarkDotNet v0.15.8.
 | `EricksonLopez.Idempotency.MariaDb` | ✔ | ✔ | ✔ | ✔ Yes | ✔ Yes | Parameterized Dapper queries with MySqlConnector. |
 | `EricksonLopez.Idempotency.Oracle` | ✔ | ✔ | ✔ | ⚠️ No | ⚠️ No | `Oracle.ManagedDataAccess.Core` requires reflection. |
 | `EricksonLopez.Idempotency.Sqlite` | ✔ | ✔ | ✔ | ✔ Yes | ✔ Yes | Parameterized Dapper queries with Microsoft.Data.Sqlite. |
-| `EricksonLopez.Idempotency.Redis` | ✔ | ✔ | ✔ | ✔ Yes | ✔ Yes | Atomic Lua scripts with StackExchange.Redis 2.8+. |
+| `EricksonLopez.Idempotency.Redis` | ✔ | ✔ | ✔ | ✔ Yes | ✔ Yes | Atomic Lua scripts with StackExchange.Redis 3.x (minimum 2.8+). |
 
 ### HTTP Problem Details RFC 9110 / RFC 9457 Status Mapping
 
@@ -808,11 +838,13 @@ All benchmarks are compiled with .NET 10.0 and BenchmarkDotNet v0.15.8.
 |---|---|---|
 | **`200 OK` / `201 Created`** | Original execution completed successfully. | Fresh response returned. |
 | **`200 OK` / `201 Created`** | Replay of previously completed execution. | `X-Idempotency-Replayed: true` with cached body & headers. |
-| **`409 Conflict`** | Identical request is currently in-flight by another worker. | RFC 9110 Problem Details (`Idempotency.InFlightConflict`) + `Retry-After: 5`. |
+| **`409 Conflict`** | Identical request is currently in-flight by another worker. | RFC 9110 Problem Details (`Idempotency.InFlightConflict`) + `Retry-After: 2`. |
 | **`409 Conflict`** | Key reused with different payload/fingerprint (tampering). | RFC 9110 Problem Details (`Idempotency.FingerprintMismatch`). |
 | **`400 Bad Request`** | Missing or invalid `Idempotency-Key` header format. | RFC 9110 Problem Details (`Idempotency.MissingKey` or `Idempotency.InvalidKey`). |
 
 ---
+
+> 🛡️ **Target Framework & Lifecycle Policy**: First-class multi-targeting across `.NET 10` (Modern LTS), `.NET 9` (STS), and `.NET 8` (Enterprise LTS) is actively maintained. Full backward compatibility is guaranteed until Microsoft officially reaches End-of-Life (EOL) for .NET 8 and .NET 9 in November 2026, at which milestone the ecosystem will transition to .NET 10 and .NET 11.
 
 ## 🏛️ Architecture & Design Principles
 
@@ -866,7 +898,6 @@ flowchart TD
         ORA -.-> StorePort
         ORA -.-> TxStorePort
         SQ -.-> StorePort
-        SQ -.-> TxStorePort
         RD -.-> StorePort
         MEM -.-> StorePort
     end

@@ -129,11 +129,12 @@ public interface IIdempotencyContextAccessor
 
 public sealed class IdempotencyContext
 {
-    public IdempotencyKey Key { get; init; }
-    public string Scope { get; init; }
-    public Guid TenantId { get; init; }
-    public string? AuthenticatedSubject { get; init; }
-    public bool IsReplay { get; init; }
+    public Guid TenantId { get; set; } = Guid.Empty;
+    public IdempotencyKey? Key { get; set; }
+    public string Scope { get; set; } = "default";
+    public Guid? OwnerToken { get; set; }
+    public int? ConcurrencyVersion { get; set; }
+    public bool IsReplay { get; set; }
 }
 ```
 

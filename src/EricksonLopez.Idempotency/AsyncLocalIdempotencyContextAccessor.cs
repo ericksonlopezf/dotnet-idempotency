@@ -4,7 +4,7 @@ using System.Threading;
 namespace EricksonLopez.Idempotency;
 
 /// <summary>
-/// Provides an implementation of <see cref="IIdempotencyContextAccessor"/> backed by an asynchronous local storage.
+/// Provides access to the ambient <see cref="IdempotencyContext"/> flowed across asynchronous execution contexts.
 /// </summary>
 public sealed class AsyncLocalIdempotencyContextAccessor : IIdempotencyContextAccessor
 {

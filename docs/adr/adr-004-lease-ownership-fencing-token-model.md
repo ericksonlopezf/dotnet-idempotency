@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 If a processing worker crashes, is terminated by OOM, or suffers a network partition during execution, the idempotency record would remain stuck in `Processing` state indefinitely without a recovery mechanism.
 

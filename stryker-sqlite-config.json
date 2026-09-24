@@ -26,6 +26,7 @@
       "high": 100,
       "low": 98
     },
-    "coverage-analysis": "all"
+    "coverage-analysis": "all",
+    "concurrency": 2
   }
 }

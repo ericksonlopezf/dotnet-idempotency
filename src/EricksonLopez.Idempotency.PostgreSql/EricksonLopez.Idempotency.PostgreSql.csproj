@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.PostgreSql</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.PostgreSql</AssemblyName>
     <Description>PostgreSQL storage provider for EricksonLopez.Idempotency using Dapper and raw SQL.</Description>
-    <PackageTags>$(CommonPackageTags);postgresql;npgsql;dapper;sql;relational-database;database</PackageTags>
+    <PackageTags>$(CommonPackageTags);postgresql;npgsql;dapper;sql;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

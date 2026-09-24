@@ -236,14 +236,25 @@ public sealed class PostgreSqlUnitTests
     [Fact]
     public async Task TryAcquireCoreAsync_WhenProcessingWithActiveLease_ReturnsInFlightConflict()
     {
-        var existingRow = CreateRow(
-            status: 1,
-            fingerprint: "fp-inflight",
-            leaseExpires: DateTimeOffset.UtcNow.AddMinutes(10));
+        DateTimeOffset capturedNow = default;
 
         using var connection = new TestDbConnection(
-            onExecuteNonQuery: _ => 0,
-            onExecuteReader: _ => new TestDbDataReader(new List<Dictionary<string, object?>> { existingRow }),
+            onExecuteNonQuery: cmd =>
+            {
+                if (cmd.CommandText.Contains("INSERT", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (IDataParameter p in cmd.Parameters)
+                    {
+                        if (p.ParameterName == "@Now" || p.ParameterName == "Now")
+                        {
+                            capturedNow = (DateTimeOffset)p.Value!;
+                        }
+                    }
+                    return 0;
+                }
+                return 0;
+            },
+            onExecuteReader: _ => new TestDbDataReader(new List<Dictionary<string, object?>> { CreateRow(status: 1, fingerprint: "fp-inflight", leaseExpires: capturedNow) }),
             onExecuteScalar: _ => 99); // If short-circuit fails, scalar 99 produces AcquiredStale and fails test
 
         var tenantId = Guid.NewGuid();

@@ -123,6 +123,7 @@ dotnet_diagnostic.CS159.severity = error
 dotnet_diagnostic.CS1591.severity = warning
 dotnet_diagnostic.CA1707.severity = warning
 dotnet_diagnostic.CA1852.severity = warning
+dotnet_diagnostic.CA1305.severity = warning
 
 # Test Files Specific Rules (Allow underscores in test method names)
 [tests/**.cs]

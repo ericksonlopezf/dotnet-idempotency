@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.Abstractions</AssemblyName>
     <Description>Core abstractions, contracts, and domain primitives for the EricksonLopez.Idempotency library.</Description>
-    <PackageTags>$(CommonPackageTags);abstractions;contracts;domain-primitives;value-objects;spi;interfaces</PackageTags>
+    <PackageTags>$(CommonPackageTags);abstractions;contracts;domain-primitives;value-objects;spi;native-aot</PackageTags>
   </PropertyGroup>
 
 </Project>

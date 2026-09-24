@@ -1,4 +1,4 @@
-# .codecov.yml
+# Copyright © Erickson Lopez. MIT License.
 codecov:
   require_ci_to_pass: false
 

@@ -1,5 +1,11 @@
 # ADR-014: Modern Target Frameworks Policy (net8.0;net9.0;net10.0) and Legacy Down-Level Rejection
 
+## Status
+Accepted
+
+## Date
+2026-08-27
+
 **Status**: Accepted (Permanent Policy)  
 **Date**: 2026-08-27  
 **Author**: Erickson López  

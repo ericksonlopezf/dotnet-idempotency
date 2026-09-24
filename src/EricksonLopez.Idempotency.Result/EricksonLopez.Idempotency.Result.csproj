@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.Result</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.Result</AssemblyName>
     <Description>Result Pattern integration for EricksonLopez.Idempotency providing functional error factories and mapping.</Description>
-    <PackageTags>$(CommonPackageTags);result-pattern;functional-programming;error-handling;railway-oriented-programming;monad</PackageTags>
+    <PackageTags>$(CommonPackageTags);result-pattern;functional-programming;error-handling;railway-oriented-programming;monad;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 Two distinct requests with different idempotency keys can target the same aggregate root (e.g. two transfers debiting the same bank account).
 

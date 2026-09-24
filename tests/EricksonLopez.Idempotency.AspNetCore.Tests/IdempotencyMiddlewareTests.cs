@@ -19,7 +19,7 @@ namespace EricksonLopez.Idempotency.AspNetCore.Tests;
 public sealed class IdempotencyMiddlewareTests
 {
     private readonly InMemoryIdempotencyStore _store = new();
-    private readonly IdempotencyOptions _options = new();
+    private readonly Microsoft.Extensions.Options.IOptions<IdempotencyOptions> _options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions());
 
     [Fact]
     public void Constructor_NullNext_ThrowsArgumentNullException()
@@ -79,7 +79,7 @@ public sealed class IdempotencyMiddlewareTests
             return Task.CompletedTask;
         });
 
-        var options = new IdempotencyOptions { RequireIdempotencyKey = false };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = false });
         var context = CreateContext(key: null, body: "");
 
         await middleware.InvokeAsync(context, _store, options);
@@ -97,7 +97,7 @@ public sealed class IdempotencyMiddlewareTests
             return Task.CompletedTask;
         });
 
-        var options = new IdempotencyOptions { RequireIdempotencyKey = false };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = false });
         var context = CreateContext(key: "   ", body: "");
 
         await middleware.InvokeAsync(context, _store, options);
@@ -115,7 +115,7 @@ public sealed class IdempotencyMiddlewareTests
             return Task.CompletedTask;
         });
 
-        var options = new IdempotencyOptions { RequireIdempotencyKey = true };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = true });
         var context = CreateContext(key: "   ", body: "");
 
         await middleware.InvokeAsync(context, _store, options);
@@ -135,7 +135,7 @@ public sealed class IdempotencyMiddlewareTests
             return Task.CompletedTask;
         });
 
-        var options = new IdempotencyOptions { RequireIdempotencyKey = true };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = true });
         var context = CreateContext(key: null, body: "");
         SetEndpointMetadata(context, new IdempotentAttribute { Enabled = false });
 
@@ -155,7 +155,7 @@ public sealed class IdempotencyMiddlewareTests
             return Task.CompletedTask;
         });
 
-        var options = new IdempotencyOptions { RequireIdempotencyKey = false, HeaderName = "X-Idempotency-Key" };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = false, HeaderName = "X-Idempotency-Key" });
         var context = CreateContext(key: null, body: "");
         SetEndpointMetadata(context, new IdempotentAttribute { Required = true });
 
@@ -184,7 +184,7 @@ public sealed class IdempotencyMiddlewareTests
             return Task.CompletedTask;
         });
 
-        var options = new IdempotencyOptions { RequireIdempotencyKey = true };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = true });
         var context = CreateContext(key: null, body: "");
 
         await middleware.InvokeAsync(context, _store, options);
@@ -203,7 +203,7 @@ public sealed class IdempotencyMiddlewareTests
             return Task.CompletedTask;
         });
 
-        var options = new IdempotencyOptions { RequireIdempotencyKey = false };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { RequireIdempotencyKey = false });
         var context = CreateContext(key: null, body: "");
         SetEndpointMetadata(context, new IdempotentAttribute { Required = false });
 
@@ -291,11 +291,11 @@ public sealed class IdempotencyMiddlewareTests
             return Task.CompletedTask;
         });
 
-        var options = new IdempotencyOptions
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions
         {
             DefaultLeaseDuration = TimeSpan.FromSeconds(45),
             DefaultRetentionDuration = TimeSpan.FromDays(10)
-        };
+        });
 
         var context = CreateContext("k-default-durations", "{\"item\":1}");
         await middleware.InvokeAsync(context, recordingStore, options);
@@ -451,7 +451,7 @@ public sealed class IdempotencyMiddlewareTests
     public async Task InvokeAsync_WhenNon2xxAndClaimHasNullOwnerToken_DoesNotThrowInvalidOperation()
     {
         var mockStore = new StaticClaimMockStore(new IdempotencyClaimResult(ClaimResultStatus.AcquiredNew, null, 1, null, null));
-        var options = new IdempotencyOptions { CacheOnlySuccessResponses = true };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { CacheOnlySuccessResponses = true });
         var middleware = new IdempotencyMiddleware(ctx =>
         {
             ctx.Response.StatusCode = 400;
@@ -485,7 +485,7 @@ public sealed class IdempotencyMiddlewareTests
     [InlineData(500, false)]
     public async Task InvokeAsync_WhenCacheOnlySuccessResponses_PersistsOnly2xx(int statusCode, bool shouldBeCached)
     {
-        var options = new IdempotencyOptions { CacheOnlySuccessResponses = true };
+        var options = Microsoft.Extensions.Options.Options.Create(new IdempotencyOptions { CacheOnlySuccessResponses = true });
         var executionCount = 0;
         var middleware = new IdempotencyMiddleware(ctx =>
         {
@@ -558,6 +558,29 @@ public sealed class IdempotencyMiddlewareTests
         recordingStore.LastScope.Should().Be("/");
     }
 
+    [Fact]
+    public async Task InvokeAsync_WhenResponseContainsBlockedHeaders_ExcludesThemFromPersistence()
+    {
+        var recordingStore = new RecordingMockStore();
+        var middleware = new IdempotencyMiddleware(ctx =>
+        {
+            ctx.Response.StatusCode = 200;
+            ctx.Response.Headers["Set-Cookie"] = "session=secret_token; Path=/";
+            ctx.Response.Headers["Authorization"] = "Bearer secret_token";
+            ctx.Response.Headers["X-Custom-Safe"] = "safe_value";
+            return Task.CompletedTask;
+        });
+
+        var context = CreateContext("k-cookie-sanitized", "{}");
+        await middleware.InvokeAsync(context, recordingStore, _options);
+
+        context.Response.StatusCode.Should().Be(200);
+        recordingStore.LastCompletedHeaders.Should().NotBeNull();
+        recordingStore.LastCompletedHeaders!.ContainsKey("Set-Cookie").Should().BeFalse();
+        recordingStore.LastCompletedHeaders!.ContainsKey("Authorization").Should().BeFalse();
+        recordingStore.LastCompletedHeaders!.ContainsKey("X-Custom-Safe").Should().BeTrue();
+    }
+
     private static DefaultHttpContext CreateContext(string? key, string body)
     {
         var context = new DefaultHttpContext();
@@ -609,6 +632,7 @@ public sealed class IdempotencyMiddlewareTests
         public string? LastScope { get; private set; }
         public TimeSpan? LastLeaseDuration { get; private set; }
         public TimeSpan? LastRetentionDuration { get; private set; }
+        public IReadOnlyDictionary<string, string[]>? LastCompletedHeaders { get; private set; }
 
         public Task<IdempotencyClaimResult> TryAcquireAsync(Guid tenantId, string scope, IdempotencyKey key, string fingerprint, TimeSpan leaseDuration, TimeSpan retentionDuration, CancellationToken cancellationToken = default)
         {
@@ -618,7 +642,11 @@ public sealed class IdempotencyMiddlewareTests
             return Task.FromResult(new IdempotencyClaimResult(ClaimResultStatus.AcquiredNew, Guid.NewGuid(), 1, null, null));
         }
 
-        public Task<bool> MarkCompletedAsync(Guid tenantId, string scope, IdempotencyKey key, Guid ownerToken, int concurrencyVersion, int statusCode, IReadOnlyDictionary<string, string[]> headers, ReadOnlyMemory<byte> responseBody, TimeSpan retentionDuration, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> MarkCompletedAsync(Guid tenantId, string scope, IdempotencyKey key, Guid ownerToken, int concurrencyVersion, int statusCode, IReadOnlyDictionary<string, string[]> headers, ReadOnlyMemory<byte> responseBody, TimeSpan retentionDuration, CancellationToken cancellationToken = default)
+        {
+            LastCompletedHeaders = headers;
+            return Task.FromResult(true);
+        }
 
         public Task<bool> MarkFailedAsync(Guid tenantId, string scope, IdempotencyKey key, Guid ownerToken, int concurrencyVersion, CancellationToken cancellationToken = default) => Task.FromResult(true);
 

@@ -1,30 +1,49 @@
 # Copyright © Erickson Lopez. MIT License.
 
-# .NET Build Outputs
-bin/
-obj/
-**/bin/
-**/obj/
+# ==============================================================================
+# .NET Build Outputs & Native AOT
+# ==============================================================================
+[Bb]in/
+[Oo]bj/
+**/[Bb]in/
+**/[Oo]bj/
 aot-output/
+**/aot-output/
+publish/
+**/publish/
+Generated_Files/
 *.binlog
 
-# Strong Name Keys
-# *.snk (Allowed for open source projects with public keys)
+# ==============================================================================
+# Strong Name Keys & Certificates
+# ==============================================================================
+*.pfx
+*.snk
+# Explicitly allow open-source public key for strong-name signing verification
 !public.snk
 
-# Backup & Temp files
+# ==============================================================================
+# Backup & Temporary Files
+# ==============================================================================
 *.bak
 *.tmp
 *.temp
+*~
+*.swp
+*.swo
 
-# NuGet packages
+# ==============================================================================
+# NuGet Packages & Build Artifacts
+# ==============================================================================
 artifacts/
 artifacts-test/
 nupkgs/
 *.nupkg
 *.snupkg
 
-# Visual Studio / Rider / Resharper
+# ==============================================================================
+# Visual Studio / JetBrains Rider / ReSharper
+# ==============================================================================
 .vs/
 *.user
 *.suo
@@ -37,18 +56,43 @@ nupkgs/
 *.DotSettings.user
 _ReSharper*/
 
+# ==============================================================================
 # Visual Studio Code
+# ==============================================================================
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
+.history/
 
-# Test, Stryker & Benchmark Artifacts
+# ==============================================================================
+# Diagnostics, Crash Dumps & Profiling
+# ==============================================================================
+*.dmp
+*.mdmp
+*.crash
+*.stackdump
+*.speedscope
+*.nettrace
+*.netperf
+*.etl
+diag.log
+
+# ==============================================================================
+# Static Analysis & SonarQube
+# ==============================================================================
+.sonarqube/
+.scannerwork/
+.roslyn/
+
+# ==============================================================================
+# Test, Stryker & Code Coverage Artifacts
+# ==============================================================================
 [Tt]est[Rr]esults*/
 test-results/
-**/TestResults/
+**/[Tt]est[Rr]esults/
 **/test-results/
 [Cc]overage[Rr]eport*/
 coverage-report*/
@@ -63,20 +107,49 @@ temp-coverage-report/
 coverage.*/
 **/coverage.*
 StrykerOutput/
-diag.log
-BenchmarkDotNet.Artifacts/
-benchmarks/results/*.log
+**/StrykerOutput/
+.stryker-tmp/
 
-# Node / Script Tooling (Mutation Testing Scripts)
+# ==============================================================================
+# BenchmarkDotNet & Performance Results
+# ==============================================================================
+BenchmarkDotNet.Artifacts/
+**/BenchmarkDotNet.Artifacts/
+benchmarks/results/*
+!benchmarks/results/baseline.json
+!benchmarks/results/.gitkeep
+
+# ==============================================================================
+# Node / Script Tooling (Mutation & Compliance Scripts)
+# ==============================================================================
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
 
-# Secrets & Local Config
+# ==============================================================================
+# Secrets & Environment Configurations
+# ==============================================================================
+.env
+.env.*
+!.env.example
 appsettings.Development.json
 appsettings.Local.json
 secrets.json
 
-# OS files
+# ==============================================================================
+# Operating System Files
+# ==============================================================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
 [Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+

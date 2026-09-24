@@ -40,10 +40,19 @@ public sealed class IdempotentEndpointFilter : IEndpointFilter
             return await next(context).ConfigureAwait(false);
         }
 
+        var endpoint = httpContext.GetEndpoint();
+        var idempotentAttr = endpoint?.Metadata.GetMetadata<IdempotentAttribute>();
+
+        // Check [Idempotent(Enabled = false)] on the endpoint — skip enforcement if disabled
+        if (idempotentAttr is { Enabled: false })
+        {
+            return await next(context).ConfigureAwait(false);
+        }
+
         if (!httpContext.Request.Headers.TryGetValue(_options.HeaderName, out var rawKey) ||
             string.IsNullOrWhiteSpace(rawKey))
         {
-            if (_options.RequireIdempotencyKey)
+            if (idempotentAttr?.Required ?? _options.RequireIdempotencyKey)
             {
                 return Results.Problem(
                     detail: $"The '{_options.HeaderName}' request header is mandatory for this endpoint.",
@@ -54,9 +63,21 @@ public sealed class IdempotentEndpointFilter : IEndpointFilter
             return await next(context).ConfigureAwait(false);
         }
 
-        var key = new IdempotencyKey(rawKey.ToString());
+        IdempotencyKey key;
+        try
+        {
+            key = new IdempotencyKey(rawKey.ToString());
+        }
+        catch (Exception ex) when (ex is ArgumentException or ArgumentOutOfRangeException)
+        {
+            return Results.Problem(
+                detail: ex.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid Idempotency Key");
+        }
+
         var tenantId = IdempotencyMiddleware.ExtractTenantId(httpContext, _options);
-        var scope = string.IsNullOrEmpty(httpContext.Request.Path.Value) ? "/" : httpContext.Request.Path.Value;
+        var scope = idempotentAttr?.Scope ?? (string.IsNullOrEmpty(httpContext.Request.Path.Value) ? "/" : httpContext.Request.Path.Value);
         var subject = httpContext.User?.FindFirst("sub")?.Value;
 
         // Buffer request body for fingerprinting
@@ -87,17 +108,27 @@ public sealed class IdempotentEndpointFilter : IEndpointFilter
             subject,
             bodyMemory.ToArray());
 
+        var leaseDuration = idempotentAttr != null
+            ? TimeSpan.FromSeconds(idempotentAttr.LeaseDurationSeconds)
+            : _options.DefaultLeaseDuration;
+        var retentionDuration = idempotentAttr != null
+            ? TimeSpan.FromDays(idempotentAttr.RetentionDurationDays)
+            : _options.DefaultRetentionDuration;
+
+        IdempotencyDiagnostics.RecordRequest(scope);
+
         var claimResult = await _store.TryAcquireAsync(
             tenantId,
             scope,
             key,
             fingerprint,
-            _options.DefaultLeaseDuration,
-            _options.DefaultRetentionDuration,
+            leaseDuration,
+            retentionDuration,
             httpContext.RequestAborted).ConfigureAwait(false);
 
         if (claimResult.Status == ClaimResultStatus.FingerprintMismatch)
         {
+            IdempotencyDiagnostics.RecordFingerprintMismatch(scope);
             return Results.Problem(
                 detail: "Idempotency key mismatch: a previous request used the same key with different payload parameters.",
                 statusCode: StatusCodes.Status409Conflict,
@@ -106,6 +137,7 @@ public sealed class IdempotentEndpointFilter : IEndpointFilter
 
         if (claimResult.Status == ClaimResultStatus.InFlightConflict)
         {
+            IdempotencyDiagnostics.RecordConflict(scope);
             httpContext.Response.Headers.RetryAfter = "2";
             return Results.Problem(
                 detail: "A concurrent request with the same idempotency key is currently processing.",
@@ -115,6 +147,8 @@ public sealed class IdempotentEndpointFilter : IEndpointFilter
 
         if (claimResult.Status == ClaimResultStatus.CompletedReplay)
         {
+            IdempotencyDiagnostics.RecordDuplicate(scope);
+            IdempotencyDiagnostics.RecordReplayed(scope);
             if (claimResult.CachedResponse is not null)
             {
                 httpContext.Response.Headers["X-Idempotency-Replayed"] = "true";
@@ -150,6 +184,7 @@ public sealed class IdempotentEndpointFilter : IEndpointFilter
             // Non-2xx responses are marked as failed so the client can retry with the same key.
             if (_options.CacheOnlySuccessResponses && !isSuccess)
             {
+                IdempotencyDiagnostics.RecordFailed(scope);
                 if (claimResult.OwnerToken.HasValue && claimResult.ConcurrencyVersion.HasValue)
                 {
                     await _store.MarkFailedAsync(
@@ -164,7 +199,9 @@ public sealed class IdempotentEndpointFilter : IEndpointFilter
             }
 
             var headersToPersist = httpContext.Response.Headers
-                .Where(h => !h.Key.StartsWith(':') && !h.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+                .Where(h => !h.Key.StartsWith(':') 
+                         && !h.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase)
+                         && !_options.ResponseHeadersBlocklist.Contains(h.Key))
                 .ToDictionary(h => h.Key, h => h.Value.Select(v => v ?? string.Empty).ToArray());
 
             await _store.MarkCompletedAsync(
@@ -176,13 +213,15 @@ public sealed class IdempotentEndpointFilter : IEndpointFilter
                 statusCode,
                 headersToPersist,
                 responseBytes,
-                _options.DefaultRetentionDuration,
+                retentionDuration,
                 CancellationToken.None).ConfigureAwait(false);
 
+            IdempotencyDiagnostics.RecordCompleted(scope);
             return result;
         }
         catch (Exception)
         {
+            IdempotencyDiagnostics.RecordFailed(scope);
             if (claimResult.OwnerToken.HasValue && claimResult.ConcurrencyVersion.HasValue)
             {
                 await _store.MarkFailedAsync(

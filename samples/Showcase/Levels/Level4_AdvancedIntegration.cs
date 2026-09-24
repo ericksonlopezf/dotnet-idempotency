@@ -139,7 +139,8 @@ public sealed class Level4AdvancedIntegration : ILevel
 
    // Supported in: PostgreSqlIdempotencyStore, SqlServerIdempotencyStore,
    //               OracleIdempotencyStore, MySqlIdempotencyStore,
-   //               MariaDbIdempotencyStore, SqliteIdempotencyStore.
+   //               MariaDbIdempotencyStore.
+   // Note: SqliteIdempotencyStore implements IIdempotencyStore (standalone embedded/testing).
 ");
 
         Console.ForegroundColor = ConsoleColor.Green;

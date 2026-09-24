@@ -9,6 +9,16 @@ namespace EricksonLopez.Idempotency.Abstractions.Tests;
 
 public sealed class CachedResponseAndExceptionTests
 {
+    private static readonly string[] ExpectedDefaultBlocklist =
+    [
+        "Set-Cookie",
+        "Set-Cookie2",
+        "Authorization",
+        "WWW-Authenticate",
+        "Proxy-Authenticate",
+        "Proxy-Authorization"
+    ];
+
     [Fact]
     public void CachedIdempotencyResponse_SetsPropertiesCorrectly()
     {
@@ -116,6 +126,13 @@ public sealed class CachedResponseAndExceptionTests
         options.StoreResponseBody.Should().BeTrue();
         options.CacheOnlySuccessResponses.Should().BeTrue();
         options.TenantIdExtractor.Should().BeNull();
+        options.ResponseHeadersBlocklist.Should().BeEquivalentTo(ExpectedDefaultBlocklist);
+        options.ResponseHeadersBlocklist.Contains("set-cookie").Should().BeTrue();
+        options.ResponseHeadersBlocklist.Contains("SET-COOKIE2").Should().BeTrue();
+        options.ResponseHeadersBlocklist.Contains("authorization").Should().BeTrue();
+        options.ResponseHeadersBlocklist.Contains("www-authenticate").Should().BeTrue();
+        options.ResponseHeadersBlocklist.Contains("proxy-authenticate").Should().BeTrue();
+        options.ResponseHeadersBlocklist.Contains("proxy-authorization").Should().BeTrue();
 
         var expectedTenant = Guid.NewGuid();
         options.Enabled = false;
@@ -137,6 +154,10 @@ public sealed class CachedResponseAndExceptionTests
         options.StoreResponseBody.Should().BeFalse();
         options.CacheOnlySuccessResponses.Should().BeFalse();
         options.TenantIdExtractor(new object()).Should().Be(expectedTenant);
+        options.ResponseHeadersBlocklist.Add("X-Custom-Secret");
+        options.ResponseHeadersBlocklist.Remove("Set-Cookie");
+        options.ResponseHeadersBlocklist.Contains("x-custom-secret").Should().BeTrue();
+        options.ResponseHeadersBlocklist.Contains("Set-Cookie").Should().BeFalse();
     }
 
     [Fact]

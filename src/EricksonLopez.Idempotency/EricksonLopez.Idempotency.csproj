@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency</AssemblyName>
     <Description>Core domain logic, fingerprint hashing, serialization, and orchestration engine for EricksonLopez.Idempotency.</Description>
-    <PackageTags>$(CommonPackageTags);engine;fingerprinting;sha256;lease-management;fencing-tokens;concurrency;opentelemetry;background-service</PackageTags>
+    <PackageTags>$(CommonPackageTags);deduplication;fingerprinting;sha256;lease-management;fencing-tokens;concurrency;opentelemetry;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

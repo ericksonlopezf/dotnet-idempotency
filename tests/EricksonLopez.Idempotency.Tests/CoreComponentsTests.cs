@@ -132,7 +132,7 @@ public sealed class CoreComponentsTests
     public void OpenTelemetryDiagnostics_RecordAllInstruments_AndValidateWithMeterListener()
     {
         IdempotencyDiagnostics.ServiceName.Should().Be("EricksonLopez.Idempotency");
-        IdempotencyDiagnostics.ServiceVersion.Should().Be("1.0.0");
+        IdempotencyDiagnostics.ServiceVersion.Should().Be("2.0.0");
         IdempotencyDiagnostics.ActivitySource.Should().NotBeNull();
         IdempotencyDiagnostics.Meter.Should().NotBeNull();
 

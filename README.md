@@ -1,11 +1,11 @@
 # EricksonLopez.Idempotency
 
-High-performance, Native AOT-first architectural idempotency engine, lease fencing, deterministic SHA-256 fingerprinting, and distributed consistency ecosystem for modern .NET.
+High-performance, Native AOT-ready idempotency and request deduplication engine for modern .NET (8/9/10), ASP.NET Core Minimal APIs, CQRS Mediator, and distributed systems.
 
 [![CI](https://img.shields.io/github/actions/workflow/status/ericksonlopezf/dotnet-idempotency/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/ericksonlopezf/dotnet-idempotency/actions)
 [![Coverage](https://img.shields.io/codecov/c/github/ericksonlopezf/dotnet-idempotency?style=for-the-badge&logo=codecov&logoColor=white)](https://codecov.io/gh/ericksonlopezf/dotnet-idempotency)
 [![Quality Gate](https://img.shields.io/sonar/quality_gate/ericksonlopezf_dotnet-idempotency?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarcloud&logoColor=white)](https://sonarcloud.io/summary/new_code?id=ericksonlopezf_dotnet-idempotency)
-[![Mutation Score](https://img.shields.io/badge/Mutation_Score-99%25-brightgreen?style=for-the-badge&logo=stryker&logoColor=white)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/build-ci-cd.md)
+[![Mutation Score](https://img.shields.io/badge/Mutation_Score-%E2%89%A599%25-brightgreen?style=for-the-badge&logo=stryker&logoColor=white)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/build-ci-cd.md)
 [![NuGet](https://img.shields.io/nuget/v/EricksonLopez.Idempotency?style=for-the-badge&logo=nuget&logoColor=white&color=512BD4)](https://www.nuget.org/packages/EricksonLopez.Idempotency)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/EricksonLopez.Idempotency?style=for-the-badge&logo=nuget&logoColor=white&color=004880)](https://www.nuget.org/packages/EricksonLopez.Idempotency)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/LICENSE)
@@ -46,13 +46,14 @@ High-performance, Native AOT-first architectural idempotency engine, lease fenci
   - [Transactional Store Participation](#transactional-store-participation)
   - [Native AOT Source-Generated Serialization](#native-aot-source-generated-serialization)
   - [Automated Background Retention Cleanup](#automated-background-retention-cleanup)
+  - [Trimming & Native AOT Roslyn Analyzers](#trimming--native-aot-roslyn-analyzers)
 - [Testing & Quality](#-testing--quality)
   - [Unit Testing with InMemoryIdempotencyStore & FakeTimeProvider](#unit-testing-with-inmemoryidempotencystore--faketimeprovider)
   - [Test Isolation via InMemoryIdempotencyStore.Clear()](#test-isolation-via-inmemoryidempotencystoreclear)
   - [High-Concurrency Multithreaded Integration Verification](#high-concurrency-multithreaded-integration-verification)
   - [Quality Engineering & Mutation Testing](#quality-engineering--mutation-testing)
 - [Performance Benchmarks](#-performance-benchmarks)
-  - [Benchmark Results](#benchmark-results)
+  - [Primary Operations Benchmark](#primary-operations-benchmark)
   - [High-Throughput Optimization Directives](#high-throughput-optimization-directives)
 - [Compatibility & Technical Matrix](#-compatibility--technical-matrix)
   - [Target Frameworks & Native AOT Support](#target-frameworks--native-aot-support)
@@ -171,6 +172,8 @@ The repository provides an executable interactive showcase project ([`samples/Sh
 - [**Testing Strategy & Test Suites**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/testing.md) — Test pyramid, `InMemoryIdempotencyStore`, FakeTimeProvider, and AOT smoke tests.
 - [**Native AOT Compatibility Guide**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/aot.md) — Trimming analyzers, Source Generation, and zero-reflection guidelines.
 - [**Build, CI/CD & Quality Engineering**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/build-ci-cd.md) — GitHub Actions pipelines, quality gates, and Stryker mutation testing.
+- [**Public API Inventory**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/api-inventory.md) — Exhaustive public API surface, contracts, records, exceptions, and extension methods.
+- [**Master Feature & Storage Matrix**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/master-feature-matrix.md) — Multi-database storage engine capabilities, distributed locking primitives, and Native AOT support.
 - [**Production Cookbook & Recipes**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/cookbook.md) — 9 copy-paste production-ready integration recipes.
 
 ---
@@ -421,7 +424,7 @@ string fingerprint = IdempotencyFingerprintHasher.Compute(
     scope: "/api/v1/payments",
     tenantId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     authenticatedSubject: "auth0|user_12345",
-    payload: payloadBytes);
+    payloadBytes: payloadBytes);
 
 // Output: 64-character uppercase hexadecimal digest
 Console.WriteLine($"Computed Fingerprint: {fingerprint}");
@@ -687,6 +690,17 @@ builder.Services.AddIdempotencyCleanupService(options =>
 });
 ```
 
+### Trimming & Native AOT Roslyn Analyzers
+
+All packages in the ecosystem enforce compile-time trimming and Native AOT safety via .NET SDK Roslyn analyzers (`EnableTrimAnalyzer=true` and `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`):
+
+| Diagnostic ID | Severity | Category | Description | Mitigation / Remedy |
+|---|:---:|---|---|---|
+| **`IL2026`** | Error | Trimming | Members attributed with `[RequiresUnreferencedCode]` called in trim-incompatible code | Suppressed or replaced with reflection-free source-generated alternatives |
+| **`IL2091`** | Error | Trimming | Target generic parameter has `[DynamicallyAccessedMembers]` mismatch | Enforce static type parameters or register type with `JsonSerializerContext` |
+| **`IL3050`** | Error | AOT | Members attributed with `[RequiresDynamicCode]` called in AOT-published apps | Use `SystemTextJsonIdempotencySerializer` and source-generated context |
+| **`CS1591`** | Error | Documentation | Missing XML documentation comment on visible type or member | 100% public API XML documentation enforced across all packages |
+
 ---
 
 ## 🧪 Testing & Quality
@@ -778,7 +792,7 @@ All benchmarks are compiled with .NET 10.0 and BenchmarkDotNet v0.15.8.
 
 > **Environment:** .NET 10.0.10, X64 RyuJIT AVX2 / AVX-512, BenchmarkDotNet v0.15.8
 
-### Benchmark Results
+### Primary Operations Benchmark
 
 | Operation | Mean | Error | StdDev | Gen0 | Gen1 | Allocated |
 |---|---:|---:|---:|---:|---:|---:|

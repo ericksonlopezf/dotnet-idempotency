@@ -3,7 +3,7 @@
 namespace EricksonLopez.Idempotency;
 
 /// <summary>
-/// Represents RFC 9110 compliant problem details without runtime reflection.
+/// Represents machine-readable problem details for HTTP API error responses according to RFC 9110.
 /// </summary>
 /// <param name="Type">The URI reference identifying the problem type.</param>
 /// <param name="Title">The short, human-readable summary of the problem type.</param>

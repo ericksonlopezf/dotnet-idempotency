@@ -10,6 +10,10 @@ namespace EricksonLopez.Idempotency;
 /// <remarks>
 /// This type encapsulates a trimmed, non-empty key string of up to 128 characters.
 /// Value equality and ordinal comparison are supported.
+/// <para>
+/// Leading and trailing white-space characters are trimmed before storage.
+/// The stored value is the trimmed form of the input — not the original string.
+/// </para>
 /// </remarks>
 public readonly record struct IdempotencyKey : IEquatable<IdempotencyKey>, IComparable<IdempotencyKey>, IComparable
 {

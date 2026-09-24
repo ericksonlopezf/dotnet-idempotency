@@ -50,9 +50,9 @@ SQL-backed stores implement `ITransactionalIdempotencyStore`, which adds overloa
 ### Registration
 
 ```csharp
-// PostgreSqlIdempotencyStore and SqlServerIdempotencyStore implement ITransactionalIdempotencyStore.
+// PostgreSqlIdempotencyStore, SqlServerIdempotencyStore, MySqlIdempotencyStore, and MariaDbIdempotencyStore implement ITransactionalIdempotencyStore.
 // Register the store:
-services.AddPostgreSqlIdempotencyStore(); // or services.AddSqlServerIdempotencyStore("ConnectionString")
+services.AddPostgreSqlIdempotencyStore(); // or services.AddSqlServerIdempotencyStore("ConnectionString") / services.AddMySqlIdempotencyStore() / services.AddMariaDbIdempotencyStore()
 
 // In consuming code, resolve as ITransactionalIdempotencyStore:
 var txStore = serviceProvider.GetRequiredService<IIdempotencyStore>() as ITransactionalIdempotencyStore;
@@ -142,12 +142,18 @@ public async Task<OrderResult> ExecuteTransactionalOrderAsync(
 
 | Provider | `ITransactionalIdempotencyStore` | Notes |
 |---|---|---|
-| `PostgreSqlIdempotencyStore` | ✅ Yes | Uses `NpgsqlConnection`/`NpgsqlTransaction` |
-| `SqlServerIdempotencyStore` | ✅ Yes | Uses `SqlConnection`/`SqlTransaction` |
-| `MySqlIdempotencyStore` | ❌ No | Standard `IIdempotencyStore` only |
-| `MariaDbIdempotencyStore` | ❌ No | Standard `IIdempotencyStore` only |
+| `PostgreSqlIdempotencyStore` | ✅ Yes | Uses `NpgsqlConnection`/`NpgsqlTransaction` via `NpgsqlDataSource` |
+| `SqlServerIdempotencyStore` | ✅ Yes | Uses `SqlConnection`/`SqlTransaction`. Guarded against `SET XACT_ABORT ON` transaction death via `UPDLOCK, HOLDLOCK` probe |
+| `MySqlIdempotencyStore` | ✅ Yes | Uses `MySqlConnection`/`MySqlTransaction` via `MySqlDataSource` |
+| `MariaDbIdempotencyStore` | ✅ Yes | Uses `MySqlConnection`/`MySqlTransaction` via `MySqlDataSource` |
 | `SqliteIdempotencyStore` | ❌ No | Standard `IIdempotencyStore` only |
-| `OracleIdempotencyStore` | ❌ No | Standard `IIdempotencyStore` only |
+| `OracleIdempotencyStore` | ✅ Yes | Uses `OracleConnection`/`OracleTransaction` via ODP.NET Core |
 | `RedisIdempotencyStore` | ❌ No | No DB transactions; Redis uses Lua atomic scripts |
 | `InMemoryIdempotencyStore` | ❌ No | In-process state; no DB transactions |
+
+### 4.1 SQL Server `SET XACT_ABORT ON` Resilience (DB-001)
+
+In Microsoft SQL Server environments where `SET XACT_ABORT ON` is active (the default in EF Core and many enterprise database drivers), any primary key or unique index collision raises a fatal error that immediately aborts and dooms the ambient transaction (`XACT_STATE() = -1`), making rollback mandatory even when caught in a `TRY...CATCH` block.
+
+`SqlServerIdempotencyStore` employs a defensive concurrency probe using `IF NOT EXISTS (SELECT 1 FROM idempotency_records WITH (UPDLOCK, HOLDLOCK) ...)` prior to insertion. This acquires the necessary key-range lock before inserting, preventing primary key violation errors from terminating or dooming ambient transactions.
 

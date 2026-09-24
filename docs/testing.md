@@ -40,10 +40,10 @@ The solution contains 16 specialized test projects ensuring comprehensive verifi
 | `EricksonLopez.Idempotency.Result.Tests` | xUnit, EricksonLopez.Result | Functional domain error factory mappings (`IdempotencyErrors`, `AsErrorResult<T>()`). |
 | `EricksonLopez.Idempotency.Testing.Tests` | xUnit, AwesomeAssertions | In-memory concurrent store test double, simulated leases, and CAS versioning. |
 | `EricksonLopez.Idempotency.PostgreSql.Tests` | xUnit, Npgsql, Dapper | PostgreSQL store dialect tests, parameterized SQL generation, `ON CONFLICT` and transactional participation. |
-| `EricksonLopez.Idempotency.SqlServer.Tests` | xUnit, SqlClient, Dapper | SQL Server store dialect tests, `MERGE WITH (HOLDLOCK)`, and transactional participation. |
-| `EricksonLopez.Idempotency.MySql.Tests` | xUnit, MySqlConnector, Dapper | MySQL store dialect tests, `INSERT IGNORE INTO`, and lease stealing logic. |
-| `EricksonLopez.Idempotency.MariaDb.Tests` | xUnit, MySqlConnector, Dapper | MariaDB store dialect tests, `INSERT IGNORE INTO`, and lease stealing logic. |
-| `EricksonLopez.Idempotency.Oracle.Tests` | xUnit, OracleClient, Dapper | Oracle Database store dialect tests, `MERGE INTO`, and lease stealing logic. |
+| `EricksonLopez.Idempotency.SqlServer.Tests` | xUnit, SqlClient, Dapper | SQL Server store dialect tests, `IF NOT EXISTS (UPDLOCK, HOLDLOCK) INSERT`, and transactional participation. |
+| `EricksonLopez.Idempotency.MySql.Tests` | xUnit, MySqlConnector, Dapper | MySQL store dialect tests, `INSERT IGNORE INTO`, and `ITransactionalIdempotencyStore` participation. |
+| `EricksonLopez.Idempotency.MariaDb.Tests` | xUnit, MySqlConnector, Dapper | MariaDB store dialect tests, `INSERT IGNORE INTO`, and `ITransactionalIdempotencyStore` participation. |
+| `EricksonLopez.Idempotency.Oracle.Tests` | xUnit, OracleClient, Dapper | Oracle Database store dialect tests, `MERGE INTO`, and `ITransactionalIdempotencyStore` participation. |
 | `EricksonLopez.Idempotency.Sqlite.Tests` | xUnit, Microsoft.Data.Sqlite | SQLite embedded database store tests, `INSERT OR IGNORE INTO`, and transactional execution. |
 | `EricksonLopez.Idempotency.Redis.Tests` | xUnit, StackExchange.Redis | Redis storage adapter tests, atomic Lua script execution, CAS state transitions, and TTL verification. |
 | `EricksonLopez.Idempotency.IntegrationTests` | xUnit, Multithreading | High-concurrency race condition tests (100 concurrent tasks on same key: exactly 1 executes, 99 receive conflict/replay). |
@@ -54,7 +54,7 @@ The solution contains 16 specialized test projects ensuring comprehensive verifi
 ## 3. Running All Tests
 
 ```bash
-# Run all tests in the solution
+# Run all unit, integration, and architecture tests in the solution
 dotnet test EricksonLopez.Idempotency.slnx --configuration Release
 
 # Run only architecture tests
@@ -63,8 +63,10 @@ dotnet test tests/EricksonLopez.Idempotency.ArchitectureTests/EricksonLopez.Idem
 # Run integration tests
 dotnet test tests/EricksonLopez.Idempotency.IntegrationTests/EricksonLopez.Idempotency.IntegrationTests.csproj
 
-# Run Native AOT smoke test
-dotnet test tests/EricksonLopez.Idempotency.AotSmokeTest/EricksonLopez.Idempotency.AotSmokeTest.csproj
+# Publish and execute Native AOT smoke test binary
+dotnet publish tests/EricksonLopez.Idempotency.AotSmokeTest/EricksonLopez.Idempotency.AotSmokeTest.csproj \
+    -c Release -r linux-x64 --self-contained -o ./aot-output
+./aot-output/EricksonLopez.Idempotency.AotSmokeTest
 ```
 
 ---

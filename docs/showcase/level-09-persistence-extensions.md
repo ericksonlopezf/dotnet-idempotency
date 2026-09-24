@@ -17,10 +17,10 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 |---|---|---|---|---|
 | `EricksonLopez.Idempotency.PostgreSql` | PostgreSQL 12+ | `INSERT ... ON CONFLICT DO NOTHING` + Dapper | ✅ 100% | ✅ Yes (`IDbConnection` + `IDbTransaction`) |
 | `EricksonLopez.Idempotency.SqlServer` | SQL Server 2016+ / Azure SQL | `MERGE WITH (HOLDLOCK)` + Dapper | ✅ 100% | ✅ Yes (`IDbConnection` + `IDbTransaction`) |
-| `EricksonLopez.Idempotency.MySql` | MySQL 8.0+ | `INSERT IGNORE INTO` + Dapper | ✅ 100% | ❌ Standard SPI only |
-| `EricksonLopez.Idempotency.MariaDb` | MariaDB 10.5+ | `INSERT IGNORE INTO` + Dapper | ✅ 100% | ❌ Standard SPI only |
+| `EricksonLopez.Idempotency.MySql` | MySQL 8.0+ | `INSERT IGNORE INTO` + Dapper | ✅ 100% | ✅ Yes (`IDbConnection` + `IDbTransaction`) |
+| `EricksonLopez.Idempotency.MariaDb` | MariaDB 10.5+ | `INSERT IGNORE INTO` + Dapper | ✅ 100% | ✅ Yes (`IDbConnection` + `IDbTransaction`) |
 | `EricksonLopez.Idempotency.Sqlite` | SQLite 3 | `INSERT OR IGNORE INTO` + Dapper | ✅ 100% | ❌ Standard SPI only |
-| `EricksonLopez.Idempotency.Oracle` | Oracle Database 19c+ | `MERGE INTO` + Dapper | ⚠️ Trimming limitations | ❌ Standard SPI only |
+| `EricksonLopez.Idempotency.Oracle` | Oracle Database 19c+ | `MERGE INTO` + Dapper | ⚠️ Trimming limitations | ✅ Yes (`IDbConnection` + `IDbTransaction`) |
 | `EricksonLopez.Idempotency.Redis` | Redis 6.0+ / Valkey | Lua Scripts on `IDatabase.ScriptEvaluateAsync` | ✅ 100% | ❌ Lua atomic execution |
 | `EricksonLopez.Idempotency.Testing` | In-Memory (Test Doubles) | `ConcurrentDictionary<TKey, TValue>` | ✅ 100% | ❌ In-memory state |
 

@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 Malicious or buggy clients might reuse the same `Idempotency-Key` with different request payloads (e.g. changing the transaction amount).
 

@@ -54,9 +54,36 @@ public sealed class MySqlUnitTests
 
         var provider = services.BuildServiceProvider();
         var store = provider.GetService<IIdempotencyStore>();
+        var txStore = provider.GetService<ITransactionalIdempotencyStore>();
 
         store.Should().NotBeNull();
         store.Should().BeOfType<MySqlIdempotencyStore>();
+        txStore.Should().NotBeNull();
+        txStore.Should().BeSameAs(store);
+    }
+
+    [Fact]
+    public async Task TransactionalOverloads_DelegateToProvidedConnectionAndTransaction()
+    {
+        using var connection = new TestDbConnection(onExecuteNonQuery: _ => 1);
+        using var transaction = connection.BeginTransaction();
+        var dataSource = new MySqlDataSource(DummyConnectionString);
+        ITransactionalIdempotencyStore store = new MySqlIdempotencyStore(dataSource);
+
+        var tenantId = Guid.NewGuid();
+        var key = new IdempotencyKey("mysql-tx-key");
+        var ownerToken = Guid.NewGuid();
+
+        var completed = await store.MarkCompletedAsync(
+            tenantId, "scope", key, ownerToken, 1, 200,
+            new Dictionary<string, string[]>(), ReadOnlyMemory<byte>.Empty, TimeSpan.FromDays(1),
+            connection, transaction);
+        completed.Should().BeTrue();
+
+        var failed = await store.MarkFailedAsync(
+            tenantId, "scope", key, ownerToken, 1,
+            connection, transaction);
+        failed.Should().BeTrue();
     }
 
     [Fact]

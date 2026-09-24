@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 In distributed microservices and HTTP APIs, network dropped connections and retries cause duplicate execution of side-effecting operations (such as payments or order creation). Existing solutions either rely on in-memory caches, generic Redis distributed locks that do not store responses, or tightly coupled ASP.NET filters without Native AOT support.
 

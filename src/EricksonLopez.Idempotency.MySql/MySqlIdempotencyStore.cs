@@ -11,9 +11,10 @@ using MySqlConnector;
 namespace EricksonLopez.Idempotency.MySql;
 
 /// <summary>
-/// Provides a MySQL persistence store implementation for <see cref="IIdempotencyStore"/> using Dapper and <see cref="MySqlDataSource"/>.
+/// Provides a MySQL persistence store implementation for <see cref="IIdempotencyStore"/> and
+/// <see cref="ITransactionalIdempotencyStore"/> using <see cref="MySqlDataSource"/>.
 /// </summary>
-public sealed class MySqlIdempotencyStore : IIdempotencyStore
+public sealed class MySqlIdempotencyStore : ITransactionalIdempotencyStore
 {
     private readonly MySqlDataSource _dataSource;
 
@@ -218,6 +219,10 @@ public sealed class MySqlIdempotencyStore : IIdempotencyStore
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Uses a new database connection obtained from the configured <see cref="MySqlDataSource"/>.
+    /// To participate in an existing transaction, use the <see cref="ITransactionalIdempotencyStore"/> overload.
+    /// </remarks>
     public async Task<bool> MarkCompletedAsync(
         Guid tenantId,
         string scope,
@@ -234,6 +239,28 @@ public sealed class MySqlIdempotencyStore : IIdempotencyStore
         return await MarkCompletedCoreAsync(
             connection, null, tenantId, scope, key, ownerToken, concurrencyVersion, statusCode, headers, responseBody, retentionDuration, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Participates in the provided <paramref name="transaction"/>. The caller is responsible for
+    /// committing or rolling back the transaction.
+    /// </remarks>
+    public Task<bool> MarkCompletedAsync(
+        Guid tenantId,
+        string scope,
+        IdempotencyKey key,
+        Guid ownerToken,
+        int concurrencyVersion,
+        int statusCode,
+        IReadOnlyDictionary<string, string[]> headers,
+        ReadOnlyMemory<byte> responseBody,
+        TimeSpan retentionDuration,
+        IDbConnection connection,
+        IDbTransaction? transaction,
+        CancellationToken cancellationToken = default) =>
+        MarkCompletedCoreAsync(
+            connection, transaction, tenantId, scope, key, ownerToken, concurrencyVersion,
+            statusCode, headers, responseBody, retentionDuration, cancellationToken);
 
     internal static async Task<bool> MarkCompletedCoreAsync(
         IDbConnection connection,
@@ -273,6 +300,10 @@ public sealed class MySqlIdempotencyStore : IIdempotencyStore
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Uses a new database connection obtained from the configured <see cref="MySqlDataSource"/>.
+    /// To participate in an existing transaction, use the <see cref="ITransactionalIdempotencyStore"/> overload.
+    /// </remarks>
     public async Task<bool> MarkFailedAsync(
         Guid tenantId,
         string scope,
@@ -285,6 +316,22 @@ public sealed class MySqlIdempotencyStore : IIdempotencyStore
         return await MarkFailedCoreAsync(
             connection, null, tenantId, scope, key, ownerToken, concurrencyVersion, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Participates in the provided <paramref name="transaction"/>. The caller is responsible for
+    /// committing or rolling back the transaction.
+    /// </remarks>
+    public Task<bool> MarkFailedAsync(
+        Guid tenantId,
+        string scope,
+        IdempotencyKey key,
+        Guid ownerToken,
+        int concurrencyVersion,
+        IDbConnection connection,
+        IDbTransaction? transaction,
+        CancellationToken cancellationToken = default) =>
+        MarkFailedCoreAsync(connection, transaction, tenantId, scope, key, ownerToken, concurrencyVersion, cancellationToken);
 
     internal static async Task<bool> MarkFailedCoreAsync(
         IDbConnection connection,

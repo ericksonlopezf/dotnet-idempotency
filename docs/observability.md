@@ -65,17 +65,14 @@ builder.Services.AddOpenTelemetry()
 and **application-level orchestrators** that bypass `IdempotencyEngine`:
 
 ```csharp
-IdempotencyDiagnostics.RecordDuration(string scope, double milliseconds);
-IdempotencyDiagnostics.RecordStorageLatency(string operation, double milliseconds);
+IdempotencyDiagnostics.RecordDuration(double milliseconds, string scope);
+IdempotencyDiagnostics.RecordStorageLatency(double milliseconds, string operation);
 ```
 
 > [!NOTE]
-> These methods are **not called by the core `IdempotencyEngine`** internally. They exist as a public
-> extension point for consumers who:
-> - Build custom store adapters and want to emit storage-latency metrics.
-> - Write application-layer orchestration code that calls `IIdempotencyStore` directly (without the engine).
-> - Instrument integration tests with custom timing.
+> When using `IdempotencyEngine`, `IdempotencyMiddleware`, or `IdempotentEndpointFilter`, all metrics
+> (requests, replayed, duplicates, conflicts, executions, completed, failed, fingerprint mismatches, and execution durations)
+> are emitted automatically with their corresponding `scope` tag.
 >
-> If you are using the standard `IdempotencyMiddleware`, `IdempotentEndpointFilter`, or `IdempotencyEngine`
-> directly, the built-in counters (requests, duplicates, replayed, etc.) are emitted automatically.
-> `RecordDuration` and `RecordStorageLatency` are additional instrumentation hooks for advanced scenarios.
+> `RecordDuration` and `RecordStorageLatency` remain publicly accessible as additional instrumentation hooks
+> for custom store adapters, outbox coordinators, and external pipeline handlers.

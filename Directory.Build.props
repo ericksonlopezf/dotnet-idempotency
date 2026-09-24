@@ -1,12 +1,13 @@
 <!-- Copyright © Erickson Lopez. MIT License. -->
 <Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists($([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')))" />
 
   <PropertyGroup>
     <VersionPrefix>1.0.0</VersionPrefix>
     <VersionSuffix></VersionSuffix>
 
     <Authors>Erickson Lopez</Authors>
-    <Company>EricksonLopez</Company>
+    <Company>Erickson Lopez</Company>
     <Copyright>Copyright © Erickson Lopez. MIT License.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://ericksonlopez.dev/idempotency</PackageProjectUrl>
@@ -49,4 +50,7 @@
     <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
 </Project>

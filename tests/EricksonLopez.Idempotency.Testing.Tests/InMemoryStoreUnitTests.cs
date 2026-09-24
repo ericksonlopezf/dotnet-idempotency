@@ -280,17 +280,18 @@ public sealed class InMemoryStoreUnitTests
         var tenantId = Guid.NewGuid();
         var key = new IdempotencyKey("inmem-race-key");
 
-        using var barrier = new Barrier(60);
+        var startGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var tasks = new List<Task<IdempotencyClaimResult>>();
         for (var i = 0; i < 60; i++)
         {
-            tasks.Add(Task.Run(() =>
+            tasks.Add(Task.Run(async () =>
             {
-                barrier.SignalAndWait();
-                return store.TryAcquireAsync(tenantId, "orders", key, "fp-race", TimeSpan.FromMinutes(5), TimeSpan.FromDays(7));
+                await startGate.Task;
+                return await store.TryAcquireAsync(tenantId, "orders", key, "fp-race", TimeSpan.FromMinutes(5), TimeSpan.FromDays(7));
             }));
         }
 
+        startGate.SetResult();
         var results = await Task.WhenAll(tasks);
 
         results.Should().ContainSingle(r => r.Status == ClaimResultStatus.AcquiredNew);
@@ -309,17 +310,18 @@ public sealed class InMemoryStoreUnitTests
         seedClaim.Status.Should().Be(ClaimResultStatus.AcquiredNew);
         await Task.Delay(30); // Expire lease
 
-        using var barrier = new Barrier(60);
+        var startGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var tasks = new List<Task<IdempotencyClaimResult>>();
         for (var i = 0; i < 60; i++)
         {
-            tasks.Add(Task.Run(() =>
+            tasks.Add(Task.Run(async () =>
             {
-                barrier.SignalAndWait();
-                return store.TryAcquireAsync(tenantId, "orders", key, "fp-stale", TimeSpan.FromMinutes(5), TimeSpan.FromDays(7));
+                await startGate.Task;
+                return await store.TryAcquireAsync(tenantId, "orders", key, "fp-stale", TimeSpan.FromMinutes(5), TimeSpan.FromDays(7));
             }));
         }
 
+        startGate.SetResult();
         var results = await Task.WhenAll(tasks);
 
         results.Should().ContainSingle(r => r.Status == ClaimResultStatus.AcquiredStale);

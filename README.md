@@ -100,13 +100,13 @@ Idempotency   ≠   Concurrency   ≠   Transactions   ≠   Outbox   ≠   Resi
 
 ## ⚡ Key Features
 
-- 🧱 **Zero-Allocation Domain Value Objects**: `IdempotencyKey` and `IdempotencyScope` are immutable `readonly record struct` types validating bounds (1–128 characters) without heap overhead.
-- 🔒 **Deterministic SHA-256 Fingerprinting**: Zero-allocation canonical request hasher (`IdempotencyFingerprintHasher`) operating on stack-allocated spans to detect payload tampering.
+- 🧱 **Zero-Allocation Domain Value Objects**: `IdempotencyKey` (1–128 characters) and `IdempotencyScope` (1–64 characters) are immutable `readonly record struct` types validating bounds without heap overhead.
+- 🔒 **Deterministic SHA-256 Fingerprinting**: Low-allocation canonical request hasher (`IdempotencyFingerprintHasher`) operating on stack-allocated spans for inputs ≤256 UTF-8 bytes, with automatic heap fallback for larger payloads, to detect payload tampering.
 - ⏱️ **Lease Ownership & Fencing Tokens**: Automatic recovery of crashed or stalled workers through expiring leases and monotonically increasing concurrency version counters.
 - ⚡ **Multi-Database Atomic Dialects**: Dedicated storage adapters for PostgreSQL (`ON CONFLICT`), SQL Server (`MERGE WITH (HOLDLOCK)`), MySQL (`INSERT IGNORE`), MariaDB, Oracle (`MERGE INTO`), SQLite (`INSERT OR IGNORE`), and Redis (Atomic Lua scripts).
 - 🔄 **Response Replay Engine**: Caches HTTP status codes, response headers, and serialized payloads, automatically returning cached responses with the `X-Idempotency-Replayed: true` header.
 - 🏢 **Native Multi-Tenancy Isolation**: Strong three-tier composite partitioning `(TenantId, Scope, IdempotencyKey)` preventing cross-tenant key collisions or leakage.
-- 🚀 **100% Native AOT & Trimming Compliant**: Zero runtime reflection; fully source-generated JSON serialization context (`IdempotencyJsonContext`) compatible with .NET 8, 9, and 10 Native AOT.
+- 🚀 **Native AOT & Trimming Compliant**: Zero runtime reflection; fully source-generated JSON serialization context (`IdempotencyJsonContext`) compatible with .NET 8, 9, and 10 Native AOT across all providers (Oracle excluded — see [Compatibility Matrix](#-compatibility--technical-matrix)).
 - 📊 **Turnkey OpenTelemetry Observability**: Pre-instrumented `ActivitySource` ("EricksonLopez.Idempotency") and `Meter` ("EricksonLopez.Idempotency") emitting real-time counters, durations, and storage latencies.
 - 🧹 **Automated Background Retention Worker**: Configurable background service (`IdempotencyCleanupBackgroundService`) performing periodic batch pruning of expired records.
 
@@ -159,7 +159,7 @@ The repository provides an executable interactive showcase project ([`samples/Sh
 ### 📖 Technical Reference & Architecture Guides
 
 - [**Architecture & Invariants**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/architecture.md) — Comprehensive architectural blueprint, component interactions, and layer separation invariants.
-- [**Architectural Decision Records (ADRs)**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/adr/adr-index.md) — 17 ADRs documenting design rationale, storage choices, and systematic rejections (no Newtonsoft, no IDistributedCache, no downlevel frameworks).
+- [**Architectural Decision Records (ADRs)**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/adr/adr-index.md) — 18 ADRs documenting design rationale, storage choices, and systematic rejections (no Newtonsoft, no IDistributedCache, no downlevel frameworks).
 - [**Showcase Specification & Technical Audit**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/showcase-specification.md) — Public API inventory, showcase audit, and verification metrics.
 - [**Formal State Machine & Lifecycle**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/state-machine.md) — State transition invariants (`Processing`, `Completed`, `Failed`) and CAS rules.
 - [**Deterministic SHA-256 Fingerprinting**](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/fingerprinting.md) — Canonical hashing strategy, span-based hashing, and payload validation.
@@ -592,7 +592,7 @@ builder.Services.AddAspNetCoreIdempotency(options =>
     options.DefaultRetentionDuration = TimeSpan.FromDays(14);
 
     // Maximum request body buffer size in bytes (default: 1 MB)
-    options.MaxRequestBodySize = 1024 * 1024;
+    options.MaxRequestBodySizeBytes = 1024 * 1024;
 
     // Cache only successful 2xx responses (recommended)
     options.CacheOnlySuccessResponses = true;
@@ -632,18 +632,32 @@ Storage providers supporting relational transactions implement `ITransactionalId
 ```csharp
 public interface ITransactionalIdempotencyStore : IIdempotencyStore
 {
-    ValueTask<IdempotencyClaimResult> TryAcquireAsync(
-        Guid tenantId, string scope, IdempotencyKey key, string fingerprint,
-        TimeSpan leaseDuration, TimeSpan retentionDuration,
-        IDbConnection? connection, IDbTransaction? transaction,
+    // Atomically marks a completed operation within the provided transaction.
+    // Returns true if the record was updated; false on owner/fencing mismatch.
+    Task<bool> MarkCompletedAsync(
+        Guid tenantId,
+        string scope,
+        IdempotencyKey key,
+        Guid ownerToken,
+        int concurrencyVersion,
+        int statusCode,
+        IReadOnlyDictionary<string, string[]> headers,
+        ReadOnlyMemory<byte> responseBody,
+        TimeSpan retentionDuration,
+        IDbConnection connection,       // NON-NULLABLE — caller must provide an open connection
+        IDbTransaction? transaction,    // NULLABLE — optional; participates in transaction if provided
         CancellationToken cancellationToken = default);
 
-    ValueTask MarkCompletedAsync(
-        Guid tenantId, string scope, IdempotencyKey key,
-        Guid ownerToken, int concurrencyVersion,
-        int statusCode, IReadOnlyDictionary<string, string[]> headers,
-        ReadOnlyMemory<byte> responseBody, TimeSpan retentionDuration,
-        IDbConnection? connection, IDbTransaction? transaction,
+    // Atomically marks a failed operation within the provided transaction.
+    // Returns true if the record was updated; false on owner/fencing mismatch.
+    Task<bool> MarkFailedAsync(
+        Guid tenantId,
+        string scope,
+        IdempotencyKey key,
+        Guid ownerToken,
+        int concurrencyVersion,
+        IDbConnection connection,       // NON-NULLABLE — caller must provide an open connection
+        IDbTransaction? transaction,    // NULLABLE — optional; participates in transaction if provided
         CancellationToken cancellationToken = default);
 }
 ```
@@ -773,6 +787,8 @@ All benchmarks are compiled with .NET 10.0 and BenchmarkDotNet v0.15.8.
 | **In-Memory Store Cached Replay** | **38.2 ns** | 0.35 ns | 0.32 ns | - | - | **0 B** |
 | **PostgreSQL Atomic Claim (via Dapper)** | **1.12 ms** | 0.04 ms | 0.03 ms | 0.0610 | - | **1.2 KB** |
 
+> ⚠️ **Benchmark scope**: All rows above measure `InMemoryIdempotencyStore` operations in isolation. The "Cached Replay" row (0 B) reflects `TryAcquireAsync` returning a cached hit without any serializer invocation. End-to-end `IdempotencyEngine.ExecuteAsync` benchmarks including deserialization are tracked separately in [`docs/performance.md`](https://github.com/ericksonlopezf/dotnet-idempotency/blob/main/docs/performance.md).
+
 ### High-Throughput Optimization Directives
 
 1. **Stack-Allocated Spans**: Fingerprint computation formats and digests strings in stack-allocated `Span<byte>` buffers, reducing allocations to near zero.
@@ -800,7 +816,7 @@ All benchmarks are compiled with .NET 10.0 and BenchmarkDotNet v0.15.8.
 | `EricksonLopez.Idempotency.MariaDb` | ✔ | ✔ | ✔ | ✔ Yes | ✔ Yes | Parameterized Dapper queries with MySqlConnector. |
 | `EricksonLopez.Idempotency.Oracle` | ✔ | ✔ | ✔ | ⚠️ No | ⚠️ No | `Oracle.ManagedDataAccess.Core` requires reflection. |
 | `EricksonLopez.Idempotency.Sqlite` | ✔ | ✔ | ✔ | ✔ Yes | ✔ Yes | Parameterized Dapper queries with Microsoft.Data.Sqlite. |
-| `EricksonLopez.Idempotency.Redis` | ✔ | ✔ | ✔ | ✔ Yes | ✔ Yes | Atomic Lua scripts with StackExchange.Redis 2.8+. |
+| `EricksonLopez.Idempotency.Redis` | ✔ | ✔ | ✔ | ✔ Yes | ✔ Yes | Atomic Lua scripts with StackExchange.Redis 3.x (minimum 2.8+). |
 
 ### HTTP Problem Details RFC 9110 / RFC 9457 Status Mapping
 
@@ -808,11 +824,13 @@ All benchmarks are compiled with .NET 10.0 and BenchmarkDotNet v0.15.8.
 |---|---|---|
 | **`200 OK` / `201 Created`** | Original execution completed successfully. | Fresh response returned. |
 | **`200 OK` / `201 Created`** | Replay of previously completed execution. | `X-Idempotency-Replayed: true` with cached body & headers. |
-| **`409 Conflict`** | Identical request is currently in-flight by another worker. | RFC 9110 Problem Details (`Idempotency.InFlightConflict`) + `Retry-After: 5`. |
+| **`409 Conflict`** | Identical request is currently in-flight by another worker. | RFC 9110 Problem Details (`Idempotency.InFlightConflict`) + `Retry-After: 2`. |
 | **`409 Conflict`** | Key reused with different payload/fingerprint (tampering). | RFC 9110 Problem Details (`Idempotency.FingerprintMismatch`). |
 | **`400 Bad Request`** | Missing or invalid `Idempotency-Key` header format. | RFC 9110 Problem Details (`Idempotency.MissingKey` or `Idempotency.InvalidKey`). |
 
 ---
+
+> 🛡️ **Target Framework & Lifecycle Policy**: First-class multi-targeting across `.NET 10` (Modern LTS), `.NET 9` (STS), and `.NET 8` (Enterprise LTS) is actively maintained. Full backward compatibility is guaranteed until Microsoft officially reaches End-of-Life (EOL) for .NET 8 and .NET 9 in November 2026, at which milestone the ecosystem will transition to .NET 10 and .NET 11.
 
 ## 🏛️ Architecture & Design Principles
 
@@ -866,7 +884,6 @@ flowchart TD
         ORA -.-> StorePort
         ORA -.-> TxStorePort
         SQ -.-> StorePort
-        SQ -.-> TxStorePort
         RD -.-> StorePort
         MEM -.-> StorePort
     end

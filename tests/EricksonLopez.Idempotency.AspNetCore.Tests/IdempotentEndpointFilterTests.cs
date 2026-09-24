@@ -428,6 +428,55 @@ public sealed class IdempotentEndpointFilterTests
         return new DefaultEndpointFilterInvocationContext(httpContext);
     }
 
+    [Fact]
+    public async Task InvokeAsync_WhenInvalidOversizedKey_ReturnsProblem400()
+    {
+        var filter = new IdempotentEndpointFilter(_store, _options);
+        var context = CreateEndpointContext(key: new string('x', 129), body: "{}");
+
+        var result = await filter.InvokeAsync(context, ctx => ValueTask.FromResult<object?>("OK"));
+
+        result.Should().BeOfType<ProblemHttpResult>();
+        var problem = (ProblemHttpResult)result!;
+        problem.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        problem.ProblemDetails.Title.Should().Be("Invalid Idempotency Key");
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenResponseContainsBlockedHeaders_ExcludesThemFromPersistence()
+    {
+        var recordingStore = new RecordingMockStore();
+        var filter = new IdempotentEndpointFilter(recordingStore, _options);
+        var context = CreateEndpointContext(key: "filter-cookie-key", body: "{}");
+
+        var result = await filter.InvokeAsync(context, ctx =>
+        {
+            ctx.HttpContext.Response.StatusCode = 200;
+            ctx.HttpContext.Response.Headers["Set-Cookie"] = "secret_cookie";
+            ctx.HttpContext.Response.Headers["Authorization"] = "Bearer secret";
+            ctx.HttpContext.Response.Headers["X-Filter-Safe"] = "safe_header";
+            return ValueTask.FromResult<object?>("OK");
+        });
+
+        recordingStore.LastCompletedHeaders.Should().NotBeNull();
+        recordingStore.LastCompletedHeaders!.ContainsKey("Set-Cookie").Should().BeFalse();
+        recordingStore.LastCompletedHeaders!.ContainsKey("Authorization").Should().BeFalse();
+        recordingStore.LastCompletedHeaders!.ContainsKey("X-Filter-Safe").Should().BeTrue();
+    }
+
+    private sealed class DummyEndpointFilterInvocationContext : EndpointFilterInvocationContext
+    {
+        public DummyEndpointFilterInvocationContext(HttpContext httpContext, IList<object?>? arguments = null)
+        {
+            HttpContext = httpContext;
+            Arguments = arguments ?? new List<object?>();
+        }
+
+        public override HttpContext HttpContext { get; }
+        public override IList<object?> Arguments { get; }
+        public override T GetArgument<T>(int index) => (T)Arguments[index]!;
+    }
+
     private sealed class DefaultEndpointFilterInvocationContext : EndpointFilterInvocationContext
     {
         public DefaultEndpointFilterInvocationContext(HttpContext httpContext)
@@ -461,6 +510,7 @@ public sealed class IdempotentEndpointFilterTests
     private sealed class RecordingMockStore : IIdempotencyStore
     {
         public string? LastScope { get; private set; }
+        public IReadOnlyDictionary<string, string[]>? LastCompletedHeaders { get; private set; }
 
         public Task<IdempotencyClaimResult> TryAcquireAsync(Guid tenantId, string scope, IdempotencyKey key, string fingerprint, TimeSpan leaseDuration, TimeSpan retentionDuration, CancellationToken cancellationToken = default)
         {
@@ -468,7 +518,11 @@ public sealed class IdempotentEndpointFilterTests
             return Task.FromResult(new IdempotencyClaimResult(ClaimResultStatus.AcquiredNew, Guid.NewGuid(), 1, null, null));
         }
 
-        public Task<bool> MarkCompletedAsync(Guid tenantId, string scope, IdempotencyKey key, Guid ownerToken, int concurrencyVersion, int statusCode, IReadOnlyDictionary<string, string[]> headers, ReadOnlyMemory<byte> responseBody, TimeSpan retentionDuration, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> MarkCompletedAsync(Guid tenantId, string scope, IdempotencyKey key, Guid ownerToken, int concurrencyVersion, int statusCode, IReadOnlyDictionary<string, string[]> headers, ReadOnlyMemory<byte> responseBody, TimeSpan retentionDuration, CancellationToken cancellationToken = default)
+        {
+            LastCompletedHeaders = headers;
+            return Task.FromResult(true);
+        }
 
         public Task<bool> MarkFailedAsync(Guid tenantId, string scope, IdempotencyKey key, Guid ownerToken, int concurrencyVersion, CancellationToken cancellationToken = default) => Task.FromResult(true);
 

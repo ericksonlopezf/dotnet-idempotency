@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.Oracle</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.Oracle</AssemblyName>
     <Description>Oracle Database storage provider for EricksonLopez.Idempotency using Dapper, Oracle.ManagedDataAccess.Core, and raw SQL.</Description>
-    <PackageTags>$(CommonPackageTags);oracle;oracle-database;plsql;odp-net;dapper;sql;relational-database;database</PackageTags>
+    <PackageTags>$(CommonPackageTags);oracle;odp-net;plsql;dapper;sql</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

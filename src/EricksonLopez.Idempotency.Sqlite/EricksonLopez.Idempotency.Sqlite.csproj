@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.Sqlite</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.Sqlite</AssemblyName>
     <Description>SQLite storage provider for EricksonLopez.Idempotency using Dapper, Microsoft.Data.Sqlite, and raw SQL.</Description>
-    <PackageTags>$(CommonPackageTags);sqlite;sqlite3;embedded-database;dapper;sql;relational-database;database</PackageTags>
+    <PackageTags>$(CommonPackageTags);sqlite;embedded-database;dapper;sql;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

@@ -11,7 +11,7 @@ This guide documents breaking changes, migration steps, and upgrade procedures f
 
 ---
 
-## Migrating from 1.0.0 to 2.0.0 (Release 2026-09-23)
+## Migrating from 1.0.0 to 2.0.0 (Release 2026-09-24)
 
 ### 1. `ITransactionalIdempotencyStore` — New Overloads on MySQL and MariaDB
 

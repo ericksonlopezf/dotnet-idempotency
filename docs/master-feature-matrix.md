@@ -6,16 +6,16 @@ This document provides a comprehensive technical reference for idempotency guara
 
 ## 1. Storage Provider Capabilities Matrix
 
-| Storage Provider | Package | Lease Expiration Mechanism | Distributed Lock Primitive | Multi-Tenancy Partitioning | Atomic CAS / Version Check | Native AOT Compatible |
+| Storage Provider | Package | Lease Expiration Mechanism | Distributed Lock / Atomic Primitive | Multi-Tenancy Partitioning | Atomic CAS / Version Check | Native AOT Compatible |
 | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
 | **In-Memory** | `EricksonLopez.Idempotency.Testing` | `TimeProvider` TTL | `ConcurrentDictionary` CAS | Composite Key | Monotonic Version | Yes |
-| **Redis** | `EricksonLopez.Idempotency.Redis` | Native Redis Key TTL (PX) | `SET key token NX PX ttl` (Lua CAS) | Key Prefix (`{tenant}:{scope}:{key}`) | Lua Script Evaluation | Yes |
-| **PostgreSQL** | `EricksonLopez.Idempotency.PostgreSql` | `lease_expires_at` Column | `FOR UPDATE SKIP LOCKED` / Advisory | Column `tenant_id` | Version Conditioned UPDATE | Yes |
-| **SQL Server** | `EricksonLopez.Idempotency.SqlServer` | `LeaseExpiresAt` Column | `sp_getapplock` / `UPDLOCK` | Column `TenantId` | Version Conditioned UPDATE | Yes |
-| **MySQL** | `EricksonLopez.Idempotency.MySql` | `lease_expires_at` Column | `FOR UPDATE NOWAIT` | Column `tenant_id` | Version Conditioned UPDATE | Yes |
-| **MariaDB** | `EricksonLopez.Idempotency.MariaDb` | `lease_expires_at` Column | `FOR UPDATE NOWAIT` | Column `tenant_id` | Version Conditioned UPDATE | Yes |
-| **Oracle** | `EricksonLopez.Idempotency.Oracle` | `LEASE_EXPIRES_AT` Column | `FOR UPDATE NOWAIT` / `DBMS_LOCK` | Column `TENANT_ID` | Version Conditioned UPDATE | Yes |
-| **SQLite** | `EricksonLopez.Idempotency.Sqlite` | `lease_expires_at` Column | Database Exclusive Lock | Column `tenant_id` | Single-Writer Transaction | Yes |
+| **Redis** | `EricksonLopez.Idempotency.Redis` | Native Redis Key TTL (PX) | Atomic Lua script (`EVAL`) | Key Prefix (`{tenant}:{scope}:{key}`) | Lua CAS Evaluation | Yes |
+| **PostgreSQL** | `EricksonLopez.Idempotency.PostgreSql` | `lease_expires_at_utc` Column | `ON CONFLICT DO NOTHING` | Column `tenant_id` | `UPDATE ... RETURNING concurrency_version` | Yes |
+| **SQL Server** | `EricksonLopez.Idempotency.SqlServer` | `lease_expires_at_utc` Column | `IF NOT EXISTS (UPDLOCK, HOLDLOCK) INSERT` | Column `tenant_id` | `UPDATE ... OUTPUT INSERTED.concurrency_version` | Yes |
+| **MySQL** | `EricksonLopez.Idempotency.MySql` | `lease_expires_at_utc` Column | `INSERT IGNORE INTO` | Column `tenant_id` | Version Conditioned `UPDATE` | Yes |
+| **MariaDB** | `EricksonLopez.Idempotency.MariaDb` | `lease_expires_at_utc` Column | `INSERT IGNORE INTO` | Column `tenant_id` | Version Conditioned `UPDATE` | Yes |
+| **Oracle** | `EricksonLopez.Idempotency.Oracle` | `lease_expires_at_utc` Column | `MERGE INTO ... USING DUAL` | Column `tenant_id` | `UPDATE ... RETURNING concurrency_version INTO` | **No** (Driver reflection) |
+| **SQLite** | `EricksonLopez.Idempotency.Sqlite` | `lease_expires_at_utc` Column | `INSERT OR IGNORE INTO` | Column `tenant_id` | Version Conditioned `UPDATE` | Yes |
 
 ---
 
@@ -25,9 +25,9 @@ This document provides a comprehensive technical reference for idempotency guara
 | :--- | :---: | :--- | :--- | :--- |
 | **`AcquiredNew`** | N/A | Execute Operation | Live Response from Handler | Caller holds exclusive ownership lease with `OwnerToken`. |
 | **`AcquiredStale`** | N/A | Execute Operation (Reclaim) | Live Response from Handler | Previous worker crashed/expired; reclaimed with new `OwnerToken`. |
-| **`CompletedReplay`** | Cached | Replay Cached Response | Stored Response + `Idempotent-Replay: true` | Payload deserialized from store; operation not executed. |
-| **`InFlightConflict`** | 409 Conflict | Intercept & Return 409 | RFC 7807 `IdempotencyProblemDetails` | Concurrent request with same key in progress; prevents double mutation. |
-| **`FingerprintMismatch`** | 422 Unprocessable | Intercept & Return 422 | RFC 7807 `IdempotencyProblemDetails` | Key reused with different payload/headers; rejected immediately. |
+| **`CompletedReplay`** | Cached | Replay Cached Response | Stored Response + `X-Idempotency-Replayed: true` | Payload deserialized from store; operation not executed. |
+| **`InFlightConflict`** | 409 Conflict | Intercept & Return 409 | RFC 9110 `IdempotencyProblemDetails` | Concurrent request with same key in progress; prevents double mutation. |
+| **`FingerprintMismatch`** | 409 Conflict | Intercept & Return 409 | RFC 9110 `IdempotencyProblemDetails` | Key reused with different payload/headers; rejected immediately. |
 
 ---
 
@@ -35,8 +35,8 @@ This document provides a comprehensive technical reference for idempotency guara
 
 | Generator / Algorithm | Canonical Elements Included | Hashing Algorithm | Output Representation | Zero-Allocation Optimizations |
 | :--- | :--- | :--- | :--- | :--- |
-| **Standard Request Fingerprint** | HTTP Method, Request Path, Query String, Tenant ID, Authenticated Subject, Normalized Body Bytes | SHA-256 | 64-character lowercase Hex string | Stackalloc span buffers, zero intermediate string heap allocations |
-| **Custom Header Fingerprint** | Configured whitelist of RFC/Custom Headers | SHA-256 / FarmHash | Hex string | Lexicographical header sorting before digest computation |
+| **Standard Request Fingerprint** | HTTP Method, Request Path, Scope, Tenant ID, Authenticated Subject, Payload Bytes | SHA-256 | 64-character uppercase Hex string | Stackalloc span buffers, minimal heap allocations on short paths |
+| **Custom Fingerprint SPI** | Application-defined components via `IIdempotencyFingerprintGenerator` | SHA-256 / Custom | Hex / Base64 string | Fully pluggable through DI registration |
 
 ---
 
@@ -44,6 +44,6 @@ This document provides a comprehensive technical reference for idempotency guara
 
 | Integration | Package | Key Mechanism | Telemetry & Observability |
 | :--- | :--- | :--- | :--- |
-| **ASP.NET Core** | `EricksonLopez.Idempotency.AspNetCore` | `IdempotencyMiddleware`, `[Idempotent]` endpoint filter | Activity spans, `idempotency.replays` metric, `Idempotency-Key` header |
-| **EricksonLopez.Mediator** | `EricksonLopez.Idempotency.Mediator` | `IdempotencyBehavior<TRequest, TResponse>` | CQRS pipeline execution with automatic key extraction from `IIdempotentRequest` |
-| **EricksonLopez.Result** | `EricksonLopez.Idempotency.Result` | `IdempotencyErrors`, `Result<T>` caching | Translates conflicts into typed `Error.Conflict` and `Error.Validation` |
+| **ASP.NET Core** | `EricksonLopez.Idempotency.AspNetCore` | `IdempotentEndpointFilter`, `IdempotencyMiddleware`, `[Idempotent]` | Activity spans, `idempotency.requests`, `idempotency.replayed`, Problem Details RFC 9110 |
+| **EricksonLopez.Mediator** | `EricksonLopez.Idempotency.Mediator` | `IdempotencyPipelineBehavior<TRequest, TResponse>` | CQRS pipeline execution with automatic key extraction from `IIdempotentRequest` |
+| **EricksonLopez.Result** | `EricksonLopez.Idempotency.Result` | `IdempotencyErrors`, `AsErrorResult<T>()` | Translates conflicts into typed `Error.Conflict` descriptors |

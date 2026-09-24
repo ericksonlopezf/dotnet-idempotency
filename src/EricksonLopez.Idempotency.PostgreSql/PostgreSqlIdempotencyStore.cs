@@ -12,7 +12,7 @@ namespace EricksonLopez.Idempotency.PostgreSql;
 
 /// <summary>
 /// Provides a PostgreSQL persistence store implementation for <see cref="IIdempotencyStore"/> and
-/// <see cref="ITransactionalIdempotencyStore"/> using Dapper and <see cref="NpgsqlDataSource"/>.
+/// <see cref="ITransactionalIdempotencyStore"/> using <see cref="NpgsqlDataSource"/>.
 /// </summary>
 public sealed class PostgreSqlIdempotencyStore : ITransactionalIdempotencyStore
 {

@@ -6,6 +6,9 @@ Author: Erickson López (<ericksonlopezf@gmail.com>)
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 There is often confusion between idempotency (ensuring an operation produces the same effect when repeated) and resilience (policies for retrying, backoff, circuit breaking).
 

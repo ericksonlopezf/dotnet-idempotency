@@ -1,5 +1,11 @@
 # ADR-017: No FusionCache in Core; Redis Package Scope Only
 
+## Status
+Rejected
+
+## Date
+2026-08-27
+
 **Status**: Rejected (for Core) / Deferred (for Redis package)  
 **Date**: 2026-08-27  
 **Author**: Erickson López  

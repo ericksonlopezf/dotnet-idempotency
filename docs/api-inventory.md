@@ -35,50 +35,65 @@ This document provides a comprehensive inventory of public types, interfaces, va
 
 ## 2. `EricksonLopez.Idempotency` (Core)
 
-### Orchestration & Serialization
+### Orchestration, Diagnostics & Serialization
 - `IdempotencyEngine`: Production coordinator managing state machine transitions and execution workflows.
 - `DefaultIdempotencyPolicy`: Configurable policy based on `IdempotencyOptions`.
 - `IdempotencyFingerprintHasher`: Optimized static hashing engine utilizing SHA-256 with zero-allocation span buffers.
 - `SystemTextJsonIdempotencySerializer`: Reflection-free serializer for response caching.
-- `AsyncLocalIdempotencyContextAccessor`: AsyncLocal-backed implementation of `IIdempotencyContextAccessor`.
+- `IdempotencyJsonContext`: Source-generated `JsonSerializerContext` for 100% Native AOT compatibility.
+- `AsyncLocalIdempotencyContextAccessor`: `AsyncLocal<T>`-backed implementation of `IIdempotencyContextAccessor`.
+- `IdempotencyDiagnostics`: OpenTelemetry instrumentation emitting `ActivitySource` traces and `Meter` metrics.
+- `IdempotencyProblemDetails`: Strongly typed RFC 9110 compliant problem details model for HTTP 400 and 409 idempotency errors.
 - `IdempotencyCleanupBackgroundService`: Periodic background worker purging expired idempotency records.
 
 ### Dependency Injection
-- `ServiceCollectionExtensions`: Extensions for configuring idempotency services (`AddIdempotency()`, `AddIdempotencyStore<T>()`).
+- `ServiceCollectionExtensions`:
+  - `AddIdempotencyCore(Action<IdempotencyOptions>?)`: Registers core domain contracts, serializers, and engine.
+  - `AddIdempotencyCleanupService(Action<IdempotencyCleanupOptions>?)`: Registers hosted background retention worker.
 
 ---
 
 ## 3. `EricksonLopez.Idempotency.AspNetCore`
 
-### Middleware & ProblemDetails
-- `IdempotencyMiddleware`: ASP.NET Core middleware intercepting HTTP requests containing `Idempotency-Key` headers.
-- `IdempotencyProblemDetails`: Strongly typed RFC 7807 problem details model for HTTP 409 and 422 idempotency errors.
-- `IdempotentAttribute`: Endpoint metadata attribute for enabling idempotency on specific Minimal API endpoints or controllers.
+### Middleware, Filters & Attributes
+- `IdempotentEndpointFilter`: Minimal API endpoint filter intercepting HTTP requests carrying `Idempotency-Key` headers.
+- `IdempotencyMiddleware`: ASP.NET Core middleware for controller actions decorated with `[Idempotent]`.
+- `IdempotentAttribute`: Endpoint metadata attribute configuring per-route `Scope`, `LeaseDurationSeconds`, `RetentionDurationDays`, and `Required`.
+- `AspNetCoreServiceCollectionExtensions`:
+  - `AddAspNetCoreIdempotency(Action<IdempotencyOptions>?)`: Registers filter, middleware dependencies, and core services.
+  - `UseIdempotency(IApplicationBuilder)`: Enables idempotency middleware in HTTP pipeline.
+  - `WithIdempotency(RouteHandlerBuilder)`: Attaches endpoint filter to a Minimal API route.
+  - `WithIdempotency(RouteGroupBuilder)`: Attaches endpoint filter to a Minimal API route group.
+- `IdempotencyOptionsAspNetCoreExtensions`:
+  - `UseTenantIdExtractor(Func<HttpContext, Guid>)`: Fluent helper configuring strongly typed tenant resolution.
 
 ---
 
 ## 4. `EricksonLopez.Idempotency.Mediator`
 
-### Pipeline Behaviors
-- `IdempotencyBehavior<TRequest, TResponse>`: Pipeline behavior for `EricksonLopez.Mediator` enforcing effectively-once execution on `IIdempotentRequest` commands.
+### Pipeline Behaviors & Contracts
+- `IIdempotentRequest`: Marker contract exposing `IdempotencyKey` and `TenantId`.
+- `IdempotencyPipelineBehavior<TRequest, TResponse>`: Struct-based pipeline behavior for `EricksonLopez.Mediator` enforcing effectively-once execution.
+- `MediatorServiceCollectionExtensions`:
+  - `AddMediatorIdempotency(IServiceCollection)`: Registers `IdempotencyPipelineBehavior` into mediator pipeline.
 
 ---
 
 ## 5. `EricksonLopez.Idempotency.Result`
 
-### Functional Extensions
-- `IdempotencyResultExtensions`: Extensions bridging idempotency execution to `Result<T>`.
-- `IdempotencyErrors`: Factory methods producing structured `Error.Conflict` and `Error.Validation` descriptors.
+### Functional Extensions & Errors
+- `IdempotencyResultExtensions`: Extensions bridging idempotency execution to `Result<T>` (`AsErrorResult<T>()`).
+- `IdempotencyErrors`: Factory methods producing structured `Error.Conflict` descriptors (`InFlightConflict`, `FingerprintMismatch`, `LeaseLost`).
 
 ---
 
 ## 6. Storage Provider Packages
 
-- `EricksonLopez.Idempotency.Redis`: Distributed storage using StackExchange.Redis with atomic Lua scripts.
-- `EricksonLopez.Idempotency.PostgreSql`: PostgreSQL storage using Dapper with `FOR UPDATE SKIP LOCKED`.
-- `EricksonLopez.Idempotency.SqlServer`: SQL Server storage using `sp_getapplock` and rowversioning.
-- `EricksonLopez.Idempotency.MySql`: MySQL storage with row-level locks.
-- `EricksonLopez.Idempotency.MariaDb`: MariaDB storage with transactional locking.
-- `EricksonLopez.Idempotency.Oracle`: Oracle Database storage using `FOR UPDATE NOWAIT`.
-- `EricksonLopez.Idempotency.Sqlite`: SQLite storage for single-node embedded persistence.
-- `EricksonLopez.Idempotency.Testing`: In-memory thread-safe storage for unit and integration testing.
+- `EricksonLopez.Idempotency.PostgreSql`: PostgreSQL storage adapter using `NpgsqlDataSource`, Dapper, `ON CONFLICT (tenant_id, scope, idempotency_key) DO NOTHING`, and `ITransactionalIdempotencyStore`.
+- `EricksonLopez.Idempotency.SqlServer`: SQL Server storage adapter using `Microsoft.Data.SqlClient`, Dapper, `IF NOT EXISTS ... WITH (UPDLOCK, HOLDLOCK) INSERT`, and `ITransactionalIdempotencyStore`.
+- `EricksonLopez.Idempotency.MySql`: MySQL storage adapter using `MySqlConnector`, Dapper, atomic `INSERT IGNORE INTO`, and `ITransactionalIdempotencyStore`.
+- `EricksonLopez.Idempotency.MariaDb`: MariaDB storage adapter using `MySqlConnector`, Dapper, atomic `INSERT IGNORE INTO`, and `ITransactionalIdempotencyStore`.
+- `EricksonLopez.Idempotency.Oracle`: Oracle Database storage adapter using `Oracle.ManagedDataAccess.Core`, Dapper, `MERGE INTO ... USING DUAL`, and `ITransactionalIdempotencyStore`.
+- `EricksonLopez.Idempotency.Sqlite`: SQLite storage adapter using `Microsoft.Data.Sqlite`, Dapper, and atomic `INSERT OR IGNORE INTO`.
+- `EricksonLopez.Idempotency.Redis`: Distributed storage using `StackExchange.Redis` with atomic Lua scripts for acquisition and CAS transitions.
+- `EricksonLopez.Idempotency.Testing`: In-memory thread-safe `InMemoryIdempotencyStore` for unit and integration testing with `TimeProvider` injection and `Clear()` state reset.

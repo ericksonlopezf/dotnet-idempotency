@@ -6,7 +6,7 @@
     <RootNamespace>EricksonLopez.Idempotency.MariaDb</RootNamespace>
     <AssemblyName>EricksonLopez.Idempotency.MariaDb</AssemblyName>
     <Description>MariaDB storage provider for EricksonLopez.Idempotency using Dapper, MySqlConnector, and raw SQL.</Description>
-    <PackageTags>$(CommonPackageTags);mariadb;mysql;mysqlconnector;dapper;sql;relational-database;database</PackageTags>
+    <PackageTags>$(CommonPackageTags);mariadb;mysqlconnector;dapper;sql;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

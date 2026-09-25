@@ -391,6 +391,27 @@ public sealed class InMemoryStoreUnitTests
         purgedAfter.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Cancellation_Requested_ThrowsOperationCanceledException_AcrossAllMethods()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var tenantId = Guid.NewGuid();
+        var key = new IdempotencyKey("inmem-cancel-key");
+        var token = new CancellationToken(canceled: true);
+
+        var actAcquire = () => store.TryAcquireAsync(tenantId, "test", key, "fp-1", TimeSpan.FromMinutes(1), TimeSpan.FromDays(1), token);
+        await actAcquire.Should().ThrowAsync<OperationCanceledException>();
+
+        var actComplete = () => store.MarkCompletedAsync(tenantId, "test", key, Guid.NewGuid(), 1, 200, new Dictionary<string, string[]>(), ReadOnlyMemory<byte>.Empty, TimeSpan.FromDays(1), token);
+        await actComplete.Should().ThrowAsync<OperationCanceledException>();
+
+        var actFail = () => store.MarkFailedAsync(tenantId, "test", key, Guid.NewGuid(), 1, token);
+        await actFail.Should().ThrowAsync<OperationCanceledException>();
+
+        var actCleanup = () => store.CleanupExpiredRecordsAsync(DateTimeOffset.UtcNow, 100, token);
+        await actCleanup.Should().ThrowAsync<OperationCanceledException>();
+    }
+
     private sealed class TestTimeProvider : TimeProvider
     {
         private DateTimeOffset _utcNow;

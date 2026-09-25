@@ -87,6 +87,7 @@ jobs:
         run: dotnet tool install --global dotnet-sonarscanner
      
       - name: Begin Sonar Analysis
+        id: sonar_begin
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -123,7 +124,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: always() && env.SONAR_TOKEN != ''
+        if: always() && steps.sonar_begin.outcome == 'success'
         run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
       - name: Upload test results
@@ -135,7 +136,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: always() && inputs.upload-coverage
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: "./test-results/**/coverage.cobertura.xml"
